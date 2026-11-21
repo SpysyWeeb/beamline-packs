@@ -67,6 +67,7 @@ The query engine, the CLI and the tests use only the Python standard library
 |---|---|
 | `entry` | one row per searchable thing: `kind` 1 place / 2 street / 3 POI, display `name`, `name_key`, `alt_keys` (`|`-separated; a leading `~` marks a derived key such as a street without its leading directional, or `route 30` / `state route 8` for a US / PA route ref), `type` (place type, road class, primary category, or `key=value` of the main OSM tag for a POI in no category), representative `lat`/`lon` (POI areas: centroid), `importance` 0..1, `muni_id` / `county_id` (entry ids of the containing municipality and county), `brand_id`, precomputed `subtitle` (first value of OSM `;` lists) |
 | `place`, `street`, `poi` | per-kind details (OSM ids, population, way count and length, `street.addr_key` = the addresses track's street key of the name, brand / brand:wikidata / operator / opening_hours / phone / website / raw addr:* tags, all categories) |
+| `poi_door` | the front door of a POI that is a large building: `entry_id`, `lat`, `lon` (a point of its outline), `how` (`main`: a mapped main entrance; `entrance`: another mapped customer entrance; `parking`: a shop, the side its parking is on). Not in every file: added 2026-11-21, schema version still 1 (an app that does not know the table ignores it). See "Front doors" below |
 | `poi_prefix` | search as you type: (grid `cell`, first 3 characters `p3` of the key, `entry_id`) for named POIs; `cell = (floor(lat*10)+900)*4000 + floor(lon*10)+1800` |
 | `context` | extra place candidates per entry, NOT a single assignment: `source` 3 = populated place within 6 km, 4 = postal city from `addr:city`, 5 = ZIP from `addr:postcode`; `weight` 0..1. Ranking uses them for "in CITY" queries |
 | `poi_cat` | category id -> POI (a POI can be in several categories) |
@@ -79,6 +80,33 @@ The query engine, the CLI and the tests use only the Python standard library
 
 Indexes: `entry_name_key` (all keys), `entry_place_key` (partial index, places
 only, for prefix lookups by importance), `entry_brand`, `vocab_word`.
+
+### Front doors (next-round item 28)
+
+An area's entry uses its centroid. For a large store that is the middle of the roof, and a route
+that ends at the lane nearest to it ends as often behind the building as in front. `doors.py`
+gives a large building (its centroid 15 m or more inside its outline, or outside it) the point of
+its outline where customers go in, and the index keeps it in `poi_door`; the app's trip planner
+ends the route at the lane by that point.
+
+1. A mapped main entrance (a node of the outline with `entrance=main`); of several, the one nearest
+   to the customer parking.
+2. Else a mapped customer entrance (`entrance=yes`, `shop`, `entrance`, `secondary`): the only
+   one, or of several the one nearest to the customer parking.
+3. Else, for a shop only (`shop=*`, or `building=retail` / `supermarket`): the point of the outline
+   nearest to the middle of the customer parking within 60 m (parking areas by their area, parking
+   aisles by their length x 16 m; never underground or multi-storey parking, never `access=private`
+   or `no`). At least 300 m2 of parking, else nothing.
+4. Else no row: the entry keeps its centroid alone.
+
+Never a service, emergency, exit, garage, staircase or home entrance. A POI mapped as a node keeps
+its own point; when the same place is mapped as a node and as its building, the node's entry gets
+the building's door. Rule 3 was measured against the 209 large buildings of Pennsylvania with
+exactly one mapped main entrance: for shops the point is on the opposite side of the building for
+4 %, median 19 m from the entrance; for schools, churches, libraries and offices 25-40 %, so the
+rule is for shops only (`docs/experiments/33-front-doors.md`). Pennsylvania (extract 261114): 2,098
+doors (261 main, 161 entrance, 1,676 parking) among 137,967 POIs; the other tables are the same
+rows as before. Unit tests: `packbuilder/search/tests/test_doors.py`.
 
 ### Named natural places (next-round item 14)
 

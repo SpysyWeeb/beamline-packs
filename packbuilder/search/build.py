@@ -189,6 +189,11 @@ CREATE TABLE street(entry_id INTEGER PRIMARY KEY, way_count INTEGER, length_m IN
 CREATE TABLE poi(entry_id INTEGER PRIMARY KEY, osm TEXT, cats TEXT, brand TEXT, brand_wikidata TEXT,
   operator TEXT, opening_hours TEXT, phone TEXT, website TEXT,
   addr_housenumber TEXT, addr_street TEXT, addr_city TEXT, addr_postcode TEXT, is_area INTEGER);
+-- Where customers go into a large building (doors.py): a point of its outline; how = main (a mapped
+-- main entrance), entrance (another mapped customer entrance), parking (a shop: the side its parking
+-- is on). The entry's own point stays the centroid. An app that does not know the table ignores it.
+CREATE TABLE poi_door(entry_id INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL, how TEXT NOT NULL)
+  WITHOUT ROWID;
 CREATE TABLE poi_cat(cat_id INTEGER, entry_id INTEGER, PRIMARY KEY(cat_id, entry_id)) WITHOUT ROWID;
 CREATE TABLE context(entry_id INTEGER, place_id INTEGER, source INTEGER, weight REAL,
   PRIMARY KEY(entry_id, place_id)) WITHOUT ROWID;
@@ -420,6 +425,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     # ---------------- entries: places ----------------
     entries = []      # dicts with keys of the entry table + extras
     place_rows, street_rows, poi_rows, poicat_rows = [], [], [], []
+    door_rows: dict[int, tuple] = {}   # entry id -> (lat, lon, how), doors.py
     rtree_rows = []
     fts_text = {}     # entry id -> names text
     ctx = collections.defaultdict(dict)  # entry id -> {place_id: (source, weight)}
@@ -827,6 +833,8 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
                     kcats.append(c)
                     poicat_rows.append((cat_code_to_id[c], keid))
             poi_rows[kidx] = poi_rows[kidx][:2] + (" ".join(kcats) or None,) + poi_rows[kidx][3:]
+            if p.get("door") and keid not in door_rows:  # the kept one is the node, this one its building
+                door_rows[keid] = (round(p["door"][1], 7), round(p["door"][0], 7), p["door"][2])
             continue
         wd = (t.get("brand:wikidata") or "").split(";")[0].strip() or None
         bkey = None
@@ -880,6 +888,8 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
         for c in cats:
             poicat_rows.append((cat_code_to_id[c], eid))
         seen_cell[cell] = (eid, len(poi_rows) - 1)
+        if p.get("door"):
+            door_rows[eid] = (round(p["door"][1], 7), round(p["door"][0], 7), p["door"][2])
         rtree_rows.append((eid, p["lat"], p["lat"], p["lon"], p["lon"]))
         # POI context: its own addr:city / addr:postcode
         if city:
@@ -1008,6 +1018,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
         db.executemany("INSERT INTO place VALUES (?,?,?,?,?)", place_rows)
         db.executemany("INSERT INTO street VALUES (?,?,?,?,?)", street_rows)
         db.executemany("INSERT INTO poi VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", poi_rows)
+        db.executemany("INSERT INTO poi_door VALUES (?,?,?,?)", ((e, *d) for e, d in sorted(door_rows.items())))
         db.executemany("INSERT OR IGNORE INTO poi_cat VALUES (?,?)", poicat_rows)
         db.executemany("INSERT INTO context VALUES (?,?,?,?)",
                        ((eid, pid, sw[0], sw[1]) for eid, d in ctx.items() for pid, sw in d.items()))
@@ -1118,7 +1129,9 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     os.replace(tmp, out)
     lap("indexes, optimize, vacuum")
     counts = {"entries": len(entries), "places": len(place_rows), "streets": len(street_rows),
-              "pois": len(poi_rows), "context_rows": stored["context"], "poi_cat_rows": stored["poi_cat"],
+              "pois": len(poi_rows), "poi_doors": len(door_rows),
+              "poi_doors_by_how": {h: sum(1 for d in door_rows.values() if d[2] == h) for h in ("main", "entrance", "parking")},
+              "context_rows": stored["context"], "poi_cat_rows": stored["poi_cat"],
               "vocab": stored["vocab"], "spell_del_rows": stored["spell_del"], "brands": stored["brand"],
               "brand_aliases": stored["brand_alias"], "category_terms": stored["category_term"],
               "poi_prefix_rows": stored["poi_prefix"], "streets_with_addr_key": n_addr_key,

@@ -33,7 +33,8 @@
       "never_uses": [
         "alley",
         "drive_through"
-      ]
+      ],
+      "door_walk_m_per_s": 1.4
     },
     "address_street": {
       "within_m": 300,
@@ -66,6 +67,11 @@
       "uses": [
         "driveway",
         "parking_aisle"
+      ],
+      "door_uses": [
+        "driveway",
+        "parking_aisle",
+        "service_road"
       ],
       "street_margin_m": 10,
       "probe_step_m": 10,

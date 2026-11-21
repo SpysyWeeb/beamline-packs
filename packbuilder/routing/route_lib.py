@@ -192,6 +192,9 @@ SEARCH_FILTER_KEYS = {"min_road_class": str, "max_road_class": str, "exclude_tun
 # The Valhalla edge uses a stop may end on when it is a point of interest (batch E): a driveway or a
 # parking aisle; never an alley or a drive-through lane (Kotlin: EveryRequest.LOT_USES).
 LOT_USES = ("driveway", "parking_aisle")
+# The same when the lot is looked for around the place's door (docs/next-round.md item 28): a plain
+# service road too, the lane along a store's front (Kotlin: EveryRequest.DOOR_USES).
+DOOR_USES = LOT_USES + ("service_road",)
 # At most this many exclude_polygons rings of 5 vertices (the app's Valhalla config allows 100 vertices).
 MAX_RINGS = 20
 
@@ -237,6 +240,9 @@ def validate_every_request(er: dict | None) -> list[str]:
         nu = tc.get("never_uses", [])
         if not isinstance(nu, list) or not all(isinstance(x, str) and x for x in nu):
             errs.append("every_request tie_check never_uses must be a list of Valhalla edge uses")
+        ws = tc.get("door_walk_m_per_s")
+        if ws is not None and (isinstance(ws, bool) or not isinstance(ws, (int, float)) or ws <= 0):
+            errs.append("every_request tie_check door_walk_m_per_s must be a number > 0")
     ad = er.get("address_street")
     if ad is not None:
         for k in ("within_m", "probe_step_m", "probe_radius_m", "end_margin_m"):
@@ -254,6 +260,9 @@ def validate_every_request(er: dict | None) -> list[str]:
         u = lot.get("uses")
         if not isinstance(u, list) or not u or not all(x in LOT_USES for x in u):
             errs.append(f"every_request lot uses must be a list of {', '.join(LOT_USES)}")
+        du = lot.get("door_uses")
+        if du is not None and (not isinstance(du, list) or not du or not all(x in DOOR_USES for x in du)):
+            errs.append(f"every_request lot door_uses must be a list of {', '.join(DOOR_USES)}")
         for k in ("probe_step_m", "probe_within_m", "street_margin_m"):
             v = lot.get(k)
             if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
@@ -432,7 +441,13 @@ LOT_SIDE = "either"
 END_KEY = "_end"
 FIXED_KEY = "_fixed"
 AVOID_KEY = "_avoid"
-PRIVATE_KEYS = (STREET_KEY, TIE_KEY, POI_KEY, END_KEY, FIXED_KEY, AVOID_KEY)
+# DOOR_KEY (docs/next-round.md item 28): where customers go into a point of interest that is a large
+# building, as {"lat", "lon"} (the search pack's poi_door table: a mapped entrance, else for a shop the
+# side its parking is on). [stop_ends] looks for the lot around the door, not around the centroid, which
+# for a large store is the middle of the roof, as near to the service road behind it as to the lane
+# along its front. Kotlin: Stop.door.
+DOOR_KEY = "_door"
+PRIVATE_KEYS = (STREET_KEY, TIE_KEY, POI_KEY, END_KEY, FIXED_KEY, AVOID_KEY, DOOR_KEY)
 
 
 def _public(loc: dict) -> dict:
@@ -619,14 +634,16 @@ def address_tie_point(resp: dict, lat: float, lon: float, street: str, rule: dic
     return best[1] if best else None
 
 
-def lot_tie_point(resps: list[dict], lat: float, lon: float, lot: dict, margin: float, classes) -> tuple | None:
+def lot_tie_point(resps: list[dict], lat: float, lon: float, lot: dict, margin: float, classes, door: bool = False) -> tuple | None:
     """Batch E (docs/next-round.md item 18): from probe answers asked with edge.use, the point of the
     nearest edge whose use is one of lot["uses"] (driveway, parking_aisle; never an alley or a
     drive-through lane) within lot["within_m"] of the place and at least lot["street_margin_m"] nearer
     to it than every street of a road class in [classes] (the stop tie's classes; so a business on its
     street with a driveway behind it still ends on the street), [margin] metres inside the edge; None
-    when there is none. Kotlin: AddressTie.lotPoint."""
-    uses = set(lot["uses"])
+    when there is none. [door] (docs/next-round.md item 28): the point is the place's door, so the uses
+    are lot["door_uses"] (a plain service road too: the lane along a store's front is often mapped as
+    one, and by the door it is not the delivery road behind the building). Kotlin: AddressTie.lotPoint."""
+    uses = set(lot.get("door_uses", lot["uses"]) if door else lot["uses"])
     best, street_d = None, None
     for e, d_min, at, pts, seg in (x for resp in resps for x in _probe_edges(resp, lat, lon, points=True)):
         if e.get("use") in uses:
@@ -694,6 +711,8 @@ def stop_ends(a, loc: dict) -> list[dict]:
     Kotlin: RoutePlanner.ends):
     - a point of interest (POI_KEY): its own lot when [lot_tie_point] finds one (no stop tie, the place as
       display_lat/display_lon, preferred_side "either"), then its address street, then the nearest street;
+      the lot is looked for around its door when it has one (DOOR_KEY: the small probe and every distance
+      of [lot_tie_point] are the door's), else around the place;
     - a place that names its address street (STREET_KEY): the point [address_tie_point] finds on that
       street (the place as display_lat/display_lon; rule 2's tie stays on it), then the nearest street;
     - any other tied place: the nearest street (the place as it is, rule 2's tie);
@@ -707,7 +726,7 @@ def stop_ends(a, loc: dict) -> list[dict]:
     small lot probe)."""
     if loc.get(FIXED_KEY):
         return [loc]
-    plain = {k: v for k, v in loc.items() if k not in (STREET_KEY, POI_KEY)}
+    plain = {k: v for k, v in loc.items() if k not in (STREET_KEY, POI_KEY, DOOR_KEY)}
     if loc.get(TIE_KEY) == "none":
         return [{**plain, END_KEY: "pin"}]
     near = {**plain, END_KEY: "near"}
@@ -735,9 +754,11 @@ def stop_ends(a, loc: dict) -> list[dict]:
         if resp is not None and street:
             q = address_tie_point(resp, loc["lat"], loc["lon"], street, rule, classes)
         if poi:
-            near_resp = probe(lot_probe_request(loc["lat"], loc["lon"], rule, lot))
+            door = loc.get(DOOR_KEY) or loc
+            near_resp = probe(lot_probe_request(door["lat"], door["lon"], rule, lot))
             resps = [r for r in (resp, near_resp) if r is not None]
-            q_lot = lot_tie_point(resps, loc["lat"], loc["lon"], lot, rule["end_margin_m"], classes)
+            q_lot = lot_tie_point(resps, door["lat"], door["lon"], lot, rule["end_margin_m"], classes,
+                                  door=DOOR_KEY in loc and loc[DOOR_KEY] is not None)
             if dt is not None:
                 rings = left_out_rings(resps, loc["lat"], loc["lon"], dt)
     except (ValueError, KeyError):
@@ -799,6 +820,9 @@ def decide_ends(a, locations: list[dict], preset: dict, **extra) -> tuple[list[d
     the list with no more U-turns (when that one finds a way) and its last tail_m metres use none of
     never_uses (an alley, a drive-through lane; one trace_attributes call, asked only for the end about
     to be kept; a failed call does not count against it). The last end is kept when none before it is.
+    Item 28 (front doors): a lot found around the place's door (DOOR_KEY) may be slower by max_extra_s plus
+    the walk it saves ([_walk_saved_s]: how much nearer to the door its route ends than the next end's, at
+    door_walk_m_per_s), because the next end of a large store is often 200 m from its door.
     Batch H: the last end is the place itself, untied ([stop_ends]); it never wins with an alley or a
     drive-through lane in its last tail_m metres (C1: no alleys unless there is no other way): such a
     place route does not count against the end before it (the nearest street), and when the place end
@@ -832,12 +856,16 @@ def decide_ends(a, locations: list[dict], preset: dict, **extra) -> tuple[list[d
             return place_bad[0]
 
         pick = ends[i][-1]
+        door = locations[i].get(DOOR_KEY)
         for k, end in enumerate(ends[i][:-1]):
             here = run(i, end)
             if "error" in here:
                 continue
             nxt = run(i, ends[i][k + 1])
-            if ("error" not in nxt and (here["trip"]["summary"]["time"] > nxt["trip"]["summary"]["time"] + rule["max_extra_s"]
+            allowed = rule["max_extra_s"]
+            if door is not None and end.get(END_KEY) == "lot" and "error" not in nxt and rule.get("door_walk_m_per_s"):
+                allowed += _walk_saved_s(here, nxt, i - 1, door, rule["door_walk_m_per_s"])
+            if ("error" not in nxt and (here["trip"]["summary"]["time"] > nxt["trip"]["summary"]["time"] + allowed
                                         or uturn_count(here) > uturn_count(nxt))
                     and not (k + 1 == last and bad_place())):
                 continue
@@ -862,6 +890,19 @@ def decide_ends(a, locations: list[dict], preset: dict, **extra) -> tuple[list[d
         d[FIXED_KEY] = True
         out[i] = d
     return out, {"tie_check": ("untied" if moved else "kept") if asked else None, "arrival_side": sided.get("arrival_side")}
+
+
+def _walk_saved_s(here: dict, nxt: dict, leg: int, door: dict, speed: float) -> float:
+    """Item 28: the walking time the end of route [here] saves over the end of route [nxt]: how much nearer to
+    the place's [door] leg [leg] of [here] ends than leg [leg] of [nxt], at [speed] m/s; 0 when it is not
+    nearer (Kotlin: RoutePlanner.walkSavedS)."""
+    def to_door(r):
+        shape = decode_polyline6(r["trip"]["legs"][leg]["shape"])
+        return haversine_m(shape[-1], (door["lat"], door["lon"]))
+    try:
+        return max(0.0, to_door(nxt) - to_door(here)) / speed
+    except (KeyError, IndexError):
+        return 0.0
 
 
 def _tail_never(a, resp: dict, leg: int, rule: dict) -> bool:

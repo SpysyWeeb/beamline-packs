@@ -16,6 +16,9 @@ Kept:
   parks       named parks, nature reserves and protected areas, as WKB
               multipolygons (a named natural place inside one is also found by
               the park's name; build.py)
+  doors       on a point of interest that is a large building: "door", the point of its outline
+              where customers go in (doors.py: a mapped entrance, else for a shop the side its
+              parking is on), as (lon, lat, how)
   addrs       compact arrays of address points (street key, city, postcode,
               lon, lat) used only for ZIP places and postal-city context
   admin_relations / admin_member_ways
@@ -26,6 +29,7 @@ Kept:
 from __future__ import annotations
 
 import array
+import math
 import time
 
 import osmium
@@ -33,6 +37,7 @@ import osmium.filter
 import osmium.geom
 import shapely
 
+import doors
 import normalize
 import rules
 
@@ -76,7 +81,7 @@ POI_TAGS_KEEP = {
 FILTER_KEYS = ("place", "boundary", "highway", "amenity", "shop", "tourism", "leisure",
                "office", "craft", "healthcare", "historic", "aeroway", "emergency",
                "railway", "public_transport", "landuse", "brand", "brand:wikidata",
-               "addr:postcode", "addr:street", "name", "natural", "waterway")
+               "addr:postcode", "addr:street", "name", "natural", "waterway", "entrance")
 # named parks, nature reserves and protected areas: their outlines are kept so a named natural
 # place inside one is also found by the park's name ('presque isle beach'; categories.json in_park)
 PARK_LEISURE = {"park", "nature_reserve"}
@@ -104,6 +109,12 @@ class Extract:
         self.addr_lat = array.array("d")
         self.strings: dict[str, int] = {"": 0}
         self.counts = {"nodes_seen": 0, "ways_seen": 0, "areas_seen": 0, "area_wkb_errors": 0}
+        # front doors (doors.py): customer entrances by node id, customer parking areas, and the
+        # large POI buildings waiting for their door until every parking area is read
+        self.entrances: dict[int, tuple] = {}
+        self.parkings: list = []
+        self.aisles: list = []
+        self.door_todo: list[tuple] = []
         self.area_errors: list[tuple] = []
 
     def sid(self, s: str | None) -> int:
@@ -144,16 +155,43 @@ class Extract:
             return True
         return False
 
-    def _poi(self, otype: str, oid: int, tags: dict, lon: float, lat: float, is_area: bool) -> None:
+    def _poi(self, otype: str, oid: int, tags: dict, lon: float, lat: float, is_area: bool) -> dict | None:
         cats = self.rb.categories_for(tags)
         named = "name" in tags or "brand" in tags
         if not cats and not self._is_poi(tags):
-            return
+            return None
         if not named and not any(self.rb.unnamed_ok(c) for c in cats):
-            return
+            return None
         kept = {k: v for k, v in tags.items() if k in POI_TAGS_KEEP}
-        self.pois.append({"t": otype, "id": oid, "lon": lon, "lat": lat, "area": is_area,
-                          "tags": kept, "cats": cats})
+        poi = {"t": otype, "id": oid, "lon": lon, "lat": lat, "area": is_area, "tags": kept, "cats": cats}
+        self.pois.append(poi)
+        return poi
+
+    def finish_doors(self) -> dict:
+        """Gives each waiting large building its door (doors.door) once every parking area is read."""
+        tree = shapely.STRtree(self.parkings) if self.parkings else None
+        aisles = shapely.from_wkb(self.aisles) if self.aisles else []
+        atree = shapely.STRtree(aisles) if len(aisles) else None
+        how_counts = {"main": 0, "entrance": 0, "parking": 0, "none": 0}
+        for poi, geom, entrances, retail in self.door_todo:
+            c = geom.centroid
+            dlat = (doors.PARKING_WITHIN_M + 5) / 111320.0
+            dlon = dlat / max(0.01, math.cos(math.radians(c.y)))
+            x0, y0, x1, y1 = geom.bounds
+            box = shapely.box(x0 - dlon, y0 - dlat, x1 + dlon, y1 + dlat)
+            near = [self.parkings[i] for i in sorted(tree.query(box))] if tree is not None else []
+            near_aisles = [aisles[i] for i in sorted(atree.query(box))] if atree is not None else []
+            try:
+                d = doors.door(geom, entrances, near, retail, near_aisles)
+            except shapely.errors.GEOSException:
+                d = None
+            how_counts[d[2] if d else "none"] += 1
+            if d is not None:
+                poi["door"] = d
+        self.door_todo = []
+        self.parkings = []
+        self.aisles = []
+        return how_counts
 
     # ---- object handlers ----------------------------------------------
     def node(self, n) -> None:
@@ -169,6 +207,10 @@ class Extract:
             self.places.append({"t": "n", "id": n.id, "lon": lon, "lat": lat,
                                 "tags": dict((t.k, t.v) for t in tags)})
             return
+        if "entrance" in tags:
+            kind = doors.entrance_kind(tags)
+            if kind:
+                self.entrances[n.id] = (lon, lat, kind)
         d = None
         for k in ("amenity", "shop", "tourism", "leisure", "office", "craft", "healthcare",
                   "historic", "aeroway", "emergency", "railway", "public_transport", "highway",
@@ -195,6 +237,11 @@ class Extract:
                 "alt": [tags[k] for k in ("alt_name", "official_name", "short_name", "loc_name") if k in tags],
                 "wkb": wkb,
             })
+        if hw == "service" and doors.aisle_counts(tags):
+            try:
+                self.aisles.append(self.wkb.create_linestring(w))
+            except Exception:
+                pass
         if ("addr:street" in tags or "addr:postcode" in tags) and len(w.nodes) > 0:
             loc = w.nodes[0].location
             if loc.valid():
@@ -242,6 +289,8 @@ class Extract:
             self.boundaries.append({"t": otype, "id": oid, "tags": dict((t.k, t.v) for t in tags), "wkb": wkb})
             return
         geom = shapely.from_wkb(wkb)
+        if d is not None and doors.parking_counts(d):
+            self.parkings.append(geom)
         if want_park and not want_place:
             self.parks.append({"t": otype, "id": oid, "name": tags.get("name"), "wkb": wkb})
             if not poi:
@@ -252,7 +301,11 @@ class Extract:
                                 "tags": dict((t.k, t.v) for t in tags),
                                 "bbox": geom.bounds})
             return
-        self._poi(otype, oid, d, c.x, c.y, True)
+        kept = self._poi(otype, oid, d, c.x, c.y, True)
+        if kept is not None and d.get("building") not in (None, "no") and doors.is_large(geom):
+            ents = sorted({(nr.ref, *self.entrances[nr.ref]) for ring in a.outer_rings() for nr in ring
+                           if nr.ref in self.entrances})
+            self.door_todo.append((kept, geom, ents, doors.is_retail(d)))
 
 
 class _MemberWays(osmium.SimpleHandler):
@@ -303,6 +356,7 @@ def run(pbf: str, rulebook: "rules.RuleBook", threads: int = 4) -> dict:
             ex.way(obj)
         elif obj.is_area():
             ex.area(obj)
+    door_counts = ex.finish_doors()
     strings = [None] * len(ex.strings)
     for s, i in ex.strings.items():
         strings[i] = s
@@ -317,6 +371,7 @@ def run(pbf: str, rulebook: "rules.RuleBook", threads: int = 4) -> dict:
         "counts": dict(ex.counts, boundaries=len(ex.boundaries), places=len(ex.places),
                        roads=len(ex.roads), pois=len(ex.pois), parks=len(ex.parks), addrs=len(ex.addr_lon),
                        admin_relations=len(admin_rels), admin_member_ways=len(grab.found),
-                       admin_member_ways_wanted=len(member_ways)),
+                       admin_member_ways_wanted=len(member_ways), entrances=len(ex.entrances),
+                       **{f"doors_{k}": v for k, v in door_counts.items()}),
     }
     return out
