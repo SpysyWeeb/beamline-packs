@@ -60,7 +60,14 @@ jobs:
 
       - name: System packages (GitHub's runner; a self-hosted runner has them already)
         if: runner.environment == 'github-hosted'
-        run: sudo sh build/setup_ubuntu.sh
+        # The runner's own JAVA_HOME is Java 17; the map profile needs 21 or newer, so the JDK that
+        # setup_ubuntu.sh installs is put first for the steps after this one.
+        run: |
+          sudo sh build/setup_ubuntu.sh
+          JDK=/usr/lib/jvm/java-25-openjdk-amd64
+          test -x "$JDK/bin/java"
+          echo "JAVA_HOME=$JDK" >> "$GITHUB_ENV"
+          echo "$JDK/bin" >> "$GITHUB_PATH"
 
       - name: Cache of downloaded wheels and tools
         if: runner.environment == 'github-hosted'

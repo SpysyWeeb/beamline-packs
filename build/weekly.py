@@ -444,7 +444,20 @@ def save_inputs(store: Store) -> list[str]:
 
 
 # ------------------------------------------------------------------ setup
+def java_major() -> int:
+    """The major version of the `java` on PATH (the one Maven and the map build run); 0 when there is none."""
+    try:
+        out = subprocess.run(["java", "-version"], capture_output=True, text=True).stderr
+    except OSError:
+        return 0
+    m = re.search(r'version "(\d+)', out)
+    return int(m.group(1)) if m else 0
+
+
 def cmd_setup(_a) -> None:
+    if java_major() < 21:
+        raise SystemExit(f"Java 21 or newer is needed on PATH (found {java_major() or 'none'}; JAVA_HOME="
+                         f"{os.environ.get('JAVA_HOME', '')}): build/setup_ubuntu.sh installs one")
     run = load_run()
     VENV.mkdir(exist_ok=True)
     py312 = shutil.which("python3.12") or sys.executable
