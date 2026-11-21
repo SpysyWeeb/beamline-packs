@@ -77,6 +77,19 @@
       "probe_step_m": 10,
       "probe_within_m": 30
     },
+    "entrance": {
+      "tail_m": 800,
+      "lot_uses": [
+        "service_road",
+        "parking_aisle",
+        "driveway"
+      ],
+      "into_m": 12,
+      "box_half_m": 6,
+      "min_gain_s": 10,
+      "within_cost": 1.1,
+      "same_end_m": 5
+    },
     "left_out": {
       "uses": [
         "drive_through",

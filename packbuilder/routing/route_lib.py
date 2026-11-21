@@ -409,8 +409,11 @@ def request(locations: list[dict], preset: dict | None = None, **extra) -> dict:
         "units": "kilometers",
         "directions_options": {"units": "kilometers"},
     }
-    # batch E2: the drive-through lanes and alleys near the stops (AVOID_KEY), left out of every route of the plan
+    # batch E2: the drive-through lanes and alleys near the stops (AVOID_KEY), left out of every route of the plan;
+    # item 35: before them the way into a lot this plan leaves out (ENTRY_KEY), so max_rings never drops it
     rings: list = []
+    for loc in locations[1:]:
+        rings += [r for r in loc.get(ENTRY_KEY, ()) if r not in rings]
     for loc in locations[1:]:
         rings += [r for r in loc.get(AVOID_KEY, ()) if r not in rings]
     if rings:
@@ -447,7 +450,13 @@ AVOID_KEY = "_avoid"
 # for a large store is the middle of the roof, as near to the service road behind it as to the lane
 # along its front. Kotlin: Stop.door.
 DOOR_KEY = "_door"
-PRIVATE_KEYS = (STREET_KEY, TIE_KEY, POI_KEY, END_KEY, FIXED_KEY, AVOID_KEY, DOOR_KEY)
+# ENTRY_KEY (docs/next-round.md item 35): the way into the stop's lot that this plan leaves out, as
+# exclude_polygons rings like AVOID_KEY's ([decide_entrances]: another way in is faster by the clock
+# and costs the engine hardly more). Unlike AVOID_KEY it belongs to one plan: every plan decides it
+# again from where the trip is then, so a driver who misses the turn is not sent back to it.
+# Kotlin: Stop.entry.
+ENTRY_KEY = "_entry"
+PRIVATE_KEYS = (STREET_KEY, TIE_KEY, POI_KEY, END_KEY, FIXED_KEY, AVOID_KEY, DOOR_KEY, ENTRY_KEY)
 
 
 def _public(loc: dict) -> dict:
@@ -484,6 +493,7 @@ def run_preset(a: valhalla.Actor, locations: list[dict], preset: dict, **extra) 
     decision's side request: "asked" or "side") and holds "_ends", the decided locations."""
     m = _Memo(a)
     ends, info = decide_ends(m, locations, decision_preset(preset), **extra)
+    ends = decide_entrances(m, ends, decision_preset(preset), **extra)
     resp = run_preset_plain(m, ends, preset, **extra)
     if "error" not in resp:
         resp.update({k: v for k, v in info.items() if v})
@@ -890,6 +900,115 @@ def decide_ends(a, locations: list[dict], preset: dict, **extra) -> tuple[list[d
         d[FIXED_KEY] = True
         out[i] = d
     return out, {"tie_check": ("untied" if moved else "kept") if asked else None, "arrival_side": sided.get("arrival_side")}
+
+
+def entrance_request(shape: list[tuple[float, float]], rule: dict) -> dict:
+    """The trace_attributes request over a leg's last rule tail_m metres, the route's own edges
+    (edge_walk), asked with each edge's use and its place in the answer's shape (Kotlin:
+    RoutePlanner.entranceRequest)."""
+    tail = [shape[-1]]
+    d = 0.0
+    for q in reversed(shape[:-1]):
+        d += haversine_m(q, tail[-1])
+        tail.append(q)
+        if d > rule["tail_m"]:
+            break
+    tail.reverse()
+    return {"shape": [{"lat": y, "lon": x} for y, x in tail], "costing": "auto", "shape_match": "edge_walk",
+            "filters": {"attributes": ["edge.use", "edge.begin_shape_index", "edge.end_shape_index", "shape"], "action": "include"}}
+
+
+def entrance_ring(a, resp: dict, leg: int, rule: dict) -> list | None:
+    """Item 35: where leg [leg] of a route leaves the public roads for the lot it ends in, as one
+    exclude_polygons ring: a square of 2 x box_half_m, in whole micro-degrees, into_m along the way the
+    route takes inside the lot (the edges after the last one whose use is not in lot_uses). None when
+    the leg does not end in a lot, lies in one for all of its last tail_m, has too short a way inside
+    (less than into_m + box_half_m: the square would touch the road), or the engine cannot walk the
+    route's own edges (no second call: a guess at the edges is not good enough to close one).
+    Kotlin: RoutePlanner.entranceRing."""
+    try:
+        shape = decode_polyline6(resp["trip"]["legs"][leg]["shape"])
+    except (KeyError, IndexError):
+        return None
+    if len(shape) < 2:
+        return None
+    try:
+        t = json.loads(a.trace_attributes(json.dumps(entrance_request(shape, rule))))
+    except (RuntimeError, ValueError):
+        return None
+    edges = t.get("edges", [])
+    pts = decode_polyline6(t.get("shape", ""))
+    k = len(edges)
+    while k > 0 and edges[k - 1].get("use") in rule["lot_uses"]:
+        k -= 1
+    if k == 0 or k == len(edges):
+        return None
+    i0, i1 = edges[k].get("begin_shape_index"), edges[-1].get("end_shape_index")
+    if not isinstance(i0, int) or not isinstance(i1, int):
+        return None   # an answer without the edges' places in the shape
+    path = pts[i0:i1 + 1]
+    if len(path) < 2:
+        return None
+    lat, lon = path[0]
+    kx, ky = 111320.0 * math.cos(math.radians(lat)), 111320.0
+    xy = [((q[1] - lon) * kx, (q[0] - lat) * ky) for q in path]
+    seg = [math.hypot(x2 - x1, y2 - y1) for (x1, y1), (x2, y2) in zip(xy, xy[1:])]
+    if sum(seg) < rule["into_m"] + rule["box_half_m"]:
+        return None
+    mid = _point_inside(xy, seg, float(rule["into_m"]), 0, lat, lon)
+    cu, lu = math.floor(mid[0] * 1e6 + 0.5), math.floor(mid[1] * 1e6 + 0.5)
+    dlat = math.floor(rule["box_half_m"] / 111320.0 * 1e6 + 0.5)
+    dlon = math.floor(dlat / math.cos(math.radians((cu // 10000) / 100.0)) + 0.5)
+    corners = [(-1, -1), (1, -1), (1, 1), (-1, 1), (-1, -1)]
+    return [[(lu + i * dlon) / 1e6, (cu + j * dlat) / 1e6] for i, j in corners]
+
+
+def decide_entrances(a, ends: list[dict], preset: dict, **extra) -> list[dict]:
+    """Item 35 (presets.json every_request.entrance; Kotlin: RoutePlanner.decideEntrances): the way
+    into each stop's lot. The engine picks a way in by its own cost, which counts every small junction
+    of an entrance; two ways into one lot can be near ties there while one is clearly faster by the
+    clock (the owner's case: 18 s). So, stop by stop, for a stop that ends in a lot: the plan's route
+    is asked ([preset]: the plan's Fastest), the place where it leaves the road is closed
+    ([entrance_ring]) and the route is asked again. The other way in is taken (its ring kept on the
+    stop as ENTRY_KEY, which every route of the plan then leaves out) when it is at least min_gain_s
+    faster, costs at most within_cost times as much and has no more U-turns. Decided anew by every
+    plan (a ring of an earlier plan is dropped first), also for stops whose end is fixed.
+    The second route counts only when it was really asked with the way in closed and ends where the
+    first one ends (the review of 2026-11-21): a request that finds no route is asked once more
+    without any exclude_polygons ([route]), and that answer, free to use the lanes and alleys the
+    plan leaves out, is not another way in; nor is a route that ends more than same_end_m away
+    because the square took the stop's own lane."""
+    rule = every_request().get("entrance")
+    out = [{k: v for k, v in e.items() if k != ENTRY_KEY} for e in ends]
+    if not rule:
+        return out
+    for i in range(1, len(out)):
+        if out[i].get(END_KEY) != "lot":
+            continue
+        first = run_preset_plain(a, out, preset, **extra)
+        if "error" in first:
+            break
+        ring = entrance_ring(a, first, i - 1, rule)
+        if ring is None:
+            continue
+        trial = out[:i] + [{**out[i], ENTRY_KEY: [ring]}] + out[i + 1:]
+        other = run_preset_plain(a, trial, preset, **extra)
+        if "error" in other or "exclude_polygons" not in other.get("_request", {}):
+            continue
+        try:
+            end1 = decode_polyline6(first["trip"]["legs"][i - 1]["shape"])[-1]
+            end2 = decode_polyline6(other["trip"]["legs"][i - 1]["shape"])[-1]
+        except (KeyError, IndexError):
+            continue
+        if haversine_m(end1, end2) > rule["same_end_m"]:
+            continue
+        s1, s2 = first["trip"]["summary"], other["trip"]["summary"]
+        if "cost" not in s1 or "cost" not in s2:
+            continue
+        if (s2["time"] <= s1["time"] - rule["min_gain_s"] and s2["cost"] <= s1["cost"] * rule["within_cost"]
+                and uturn_count(other) <= uturn_count(first)):
+            out = trial
+    return out
 
 
 def _walk_saved_s(here: dict, nxt: dict, leg: int, door: dict, speed: float) -> float:
