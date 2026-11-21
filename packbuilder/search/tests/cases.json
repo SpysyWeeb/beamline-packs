@@ -365,6 +365,15 @@
   {"id": "nat-ganoga-falls", "type": "natural", "q": "ganoga falls", "at": "wilkes_barre", "expect": {"title_contains": "Ganoga Falls", "within_km": 60}},
   {"id": "nat-ricketts-glen-waterfall", "type": "natural", "q": "ricketts glen waterfall", "at": "wilkes_barre", "expect": {"category": "waterfall", "within_km": 60}},
   {"id": "nat-mount-davis", "type": "natural", "q": "mount davis", "at": "breezewood", "expect": {"title_contains": "Mount Davis", "within_km": 120}, "note": "the highest point of Pennsylvania (natural=peak)"},
-  {"id": "nat-crystal-cave", "type": "natural", "q": "crystal cave", "at": "allentown", "expect": {"title_contains": "Crystal Cave", "within_km": 40}}
+  {"id": "nat-crystal-cave", "type": "natural", "q": "crystal cave", "at": "allentown", "expect": {"title_contains": "Crystal Cave", "within_km": 40}},
+  {"id": "x-state-12th-erie", "type": "crossing", "q": "state st and 12th", "at": "erie", "expect": {"title_contains": "State Street & ", "within_km": 2}, "note": "where two streets meet (the streets' lines, ranking.json crossing); East and West 12th Street both meet State Street there"},
+  {"id": "x-peach-26th-amp", "type": "crossing", "q": "peach & w 26th", "at": "erie", "expect": {"title_contains": "Peach Street & West 26th Street", "within_km": 4}},
+  {"id": "x-12th-at-state", "type": "crossing", "q": "12th at state", "at": "erie", "expect": {"title_contains": "12th Street & State Street", "within_km": 2}},
+  {"id": "x-ref-19-26th", "type": "crossing", "q": "us 19 and w 26th st", "at": "erie", "expect": {"title_contains": "Peach Street & West 26th Street", "within_km": 4}, "note": "a road by its number"},
+  {"id": "x-liberty-38th-pgh", "type": "crossing", "q": "liberty ave and 38th st", "at": "pittsburgh", "expect": {"title_contains": "Liberty Avenue & 38th Street", "within_km": 10}},
+  {"id": "x-at-sign", "type": "crossing", "q": "peach st @ w 26th", "at": "erie", "expect": {"title_contains": "Peach Street & West 26th Street", "within_km": 4}},
+  {"id": "x-state-word", "type": "crossing", "q": "state st and 12th pa", "at": "erie", "expect": {"title_contains": "State Street & ", "within_km": 2}, "note": "a trailing state word is not part of the second street"},
+  {"id": "x-near-me", "type": "crossing", "q": "peach st and w 26th st near me", "at": "erie", "expect": {"title_contains": "Peach Street & West 26th Street", "within_km": 4}},
+  {"id": "x-not-a-crossing", "type": "crossing", "q": "bed bath and beyond", "at": "pittsburgh", "expect": {"title_contains": "Bed Bath & Beyond"}, "note": "'and' inside a name is not a crossing"}
  ]
 }

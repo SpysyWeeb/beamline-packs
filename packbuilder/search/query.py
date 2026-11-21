@@ -26,6 +26,12 @@ Pipeline for one query string (README.md has the long version):
   6. house numbers: street results are joined to the addresses track's
      database through street.addr_key (computed at build time); the located
      point replaces the street's point before distance and de-duplication.
+  7. the streets' lines (table street_line, lines.py; a pack without the table
+     answers as before): with a position, a street result's point is the point
+     of its line nearest to the position, not the street's middle (so its
+     distance, its pin and a route to it agree); 'state st and 12th', 'peach & w 26th',
+     'state at 12th' also give the places where the two streets meet, first
+     (ranking.json crossing); near_street() names the street at a point.
 """
 from __future__ import annotations
 
@@ -40,6 +46,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import lines  # noqa: E402
 import normalize  # noqa: E402
 
 KIND_PLACE, KIND_STREET, KIND_POI = 1, 2, 3
@@ -153,6 +160,8 @@ class SearchEngine:
         self.bbox = tuple(float(x) for x in self.meta["bbox"].split(",")) if self.meta.get("bbox") else None
         tables = {r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
         self.has_poi_prefix = "poi_prefix" in tables
+        self.has_lines = "street_line" in tables
+        self._lines: dict[int, list] = {}
         self.has_addr_key = "addr_key" in {r[1] for r in self.db.execute("PRAGMA table_info(street)")}
         self.state_names = set(self.tb.get("state_names", []))
         self.street_types = set(self.tb.get("street_types", []))
@@ -530,6 +539,151 @@ class SearchEngine:
             f"WHERE r.maxlat >= ? AND r.minlat <= ? AND r.maxlon >= ? AND r.minlon <= ? AND e.kind = 3{cond} LIMIT 500",
             (minlat, maxlat, minlon, maxlon)).fetchall()
 
+    # ------------------------------------------------------------------ the streets' lines
+    def street_lines(self, eid: int) -> list:
+        """The lines of a street entry (lines.decode), [] without one or when its blob is broken."""
+        if not self.has_lines:
+            return []
+        hit = self._lines.get(eid)
+        if hit is None:
+            row = self.db.execute("SELECT line FROM street_line WHERE entry_id = ?", (eid,)).fetchone()
+            try:
+                hit = lines.decode(row[0]) if row else []
+            except ValueError:
+                hit = []
+            if len(self._lines) >= 512:
+                self._lines.clear()
+            self._lines[eid] = hit
+        return hit
+
+    def _street_side(self, toks: list[str], partial: bool, user) -> list:
+        """The streets one side of a crossing names ('state st', '12th'), the nearest first, each once."""
+        ph = Phrase(toks, partial, self.stop)
+        if not ph:
+            return []
+        n = self.rk["crossing"]["candidates_per_side"]
+        key, key_raw = ph.key, ph.key_raw
+        rows = self._fts(self.fts_match([[t] for t in ph.exp], partial, ph.last_raw), user, kinds=[KIND_STREET], limit=n)
+        if not rows:
+            fixed = [self._best_fix(t) for t in ph.exp]
+            if fixed != ph.exp:
+                rows = self._fts(self.fts_match([[t] for t in fixed], partial, None), user, kinds=[KIND_STREET], limit=n)
+                key = key_raw = " ".join(fixed)
+        ok = ("exact", "exact_alt", "prefix", "word_prefix")
+        out, seen = [], set()
+        for r in rows:
+            if r[R_ID] not in seen and (self.name_tier(key, r) in ok or self.name_tier(key_raw, r) in ok):
+                seen.add(r[R_ID])
+                # own: the street's own name was typed, not one of its other names ('state' also finds
+                # every road whose other name is 'State Route ...')
+                bare = r[:R_ALT] + (None,) + r[R_ALT + 1:]
+                out.append((r, self.name_tier(key, bare) in ok or self.name_tier(key_raw, bare) in ok))
+        return out
+
+    def crossings(self, text: str, user) -> list[dict]:
+        """Where two streets the text names meet ('state st and 12th', 'peach & w 26th', 'state at 12th'):
+        result dicts as search() gives them, the nearest to [user] first (without a position in the order
+        found: the best street matches first). [] when the text has no such word, a side names no street,
+        or the streets do not meet. '&' folds to 'and'; '@' is read as 'at'. When two streets typed by
+        their own names meet, crossings found only through another name of a road are left out. The
+        words are the parsed ones ('near me' and a trailing state are off: 'state st and 12th pa'); a text
+        that starts with a house number names no crossing ([partial] is not used: the parse says it).
+
+        A result's id is negative and its own: the two street ids and the number of the meeting among that
+        pair's (a pair can meet more than once), so two crossings never share an id in a list or a store."""
+        if not self.has_lines:
+            return []
+        C = self.rk["crossing"]
+        pp = self.parse(text.replace("@", " at "))
+        if pp["house"]:
+            return []
+        toks, partial = pp["tokens"], pp["partial"]
+        found = []
+        for i in range(1, len(toks) - 1):
+            if toks[i] not in C["words"]:
+                continue
+            left = self._street_side(toks[:i], False, user)
+            right = self._street_side(toks[i + 1:], partial, user) if left else []
+            if not right:
+                continue
+            ids = [r[R_ID] for r, _ in left + right]
+            boxes = {}
+            for k in range(0, len(ids), 900):
+                chunk = ids[k:k + 900]
+                for row in self.db.execute(
+                        f"SELECT id, minlat, maxlat, minlon, maxlon FROM entry_rtree WHERE id IN ({','.join('?' * len(chunk))})", chunk):
+                    boxes[row[0]] = row[1:]
+            m = C["box_margin_deg"]
+            tests = work = 0
+            for a, own_a in left:
+                ba = boxes.get(a[R_ID])
+                for b, own_b in right:
+                    bb = boxes.get(b[R_ID])
+                    if a[R_ID] == b[R_ID] or a[R_KEY] == b[R_KEY] or ba is None or bb is None:
+                        continue
+                    if ba[0] > bb[1] + m or bb[0] > ba[1] + m or ba[2] > bb[3] + m or bb[2] > ba[3] + m:
+                        continue
+                    if tests >= C["max_pairs"]:
+                        break
+                    la, lb = self.street_lines(a[R_ID]), self.street_lines(b[R_ID])
+                    # the work of one pair: its segments against each other; a pair that would go over what
+                    # one query may spend is left out (two long roads of a thousand points each)
+                    cost = sum(len(x) - 1 for x in la) * sum(len(x) - 1 for x in lb)
+                    if work + cost > C["max_segment_tests"]:
+                        continue
+                    work += cost
+                    tests += 1
+                    for k, (lat, lon) in enumerate(lines.crossings(la, lb, C["within_m"], C["apart_m"])[:8]):
+                        found.append((a, b, lat, lon, own_a and own_b, k))
+            if found:
+                break
+        if not found:
+            return []
+        if any(f[4] for f in found):
+            found = [f for f in found if f[4]]
+        if user:
+            found = sorted(found, key=lambda f: haversine_km(user[0], user[1], f[2], f[3]))   # stable
+        out, shown = [], []
+        for a, b, lat, lon, _, k in found:
+            if any(haversine_km(lat, lon, s[0], s[1]) * 1000.0 < C["apart_m"] for s in shown):
+                continue
+            shown.append((lat, lon))
+            lat, lon = round(lat, 6), round(lon, 6)
+            d = haversine_km(user[0], user[1], lat, lon) if user else None
+            out.append({"id": -((((a[R_ID] << 32) | b[R_ID]) << 3) | k), "kind": "street", "title": f"{a[R_NAME]} & {b[R_NAME]}",
+                        "subtitle": a[R_SUB] or "", "category": "Intersection", "type": "intersection",
+                        "lat": lat, "lon": lon, "distance_km": round(d, 2) if d is not None else None,
+                        "brand_id": None, "score": C["score"], "how": "crossing", "tier": "crossing"})
+            if len(out) >= C["max_results"]:
+                break
+        return out
+
+    def near_street(self, lat: float, lon: float) -> dict | None:
+        """The street at a point (a dropped pin): the street entry whose line is nearest, within
+        ranking.json near_street.within_m, as {"id", "name", "subtitle", "distance_m", "lat", "lon"} (the
+        point of the line); None without one, without lines in the pack, or for a position that is not usable.
+        Equal distances: the more important street, then the lower id."""
+        at = valid_position(lat, lon)
+        if not at or not self.has_lines:
+            return None
+        N = self.rk["near_street"]
+        dlat = N["within_m"] / lines.M_PER_DEG
+        dlon = N["within_m"] / (lines.M_PER_DEG * math.cos(math.radians(at[0])))
+        rows = self.db.execute(
+            "SELECT e.id, e.name, e.subtitle, e.importance FROM entry_rtree t JOIN entry e ON e.id = t.id "
+            "WHERE t.minlat <= ? AND t.maxlat >= ? AND t.minlon <= ? AND t.maxlon >= ? AND e.kind = 2 ORDER BY e.id LIMIT ?",
+            (at[0] + dlat, at[0] - dlat, at[1] + dlon, at[1] - dlon, N["max_streets"])).fetchall()
+        best = None
+        for eid, name, sub, imp in rows:
+            nb = lines.nearest(self.street_lines(eid), at[0], at[1])
+            if nb is None or nb[0] > N["within_m"]:
+                continue
+            key = (round(nb[0], 1), -imp, eid)
+            if best is None or key < best[0]:
+                best = (key, {"id": eid, "name": name, "subtitle": sub or "", "distance_m": round(nb[0], 1),
+                              "lat": round(nb[1], 6), "lon": round(nb[2], 6)})
+        return best[1] if best else None
+
     def bbox_of(self, eid):
         return self.db.execute("SELECT minlat, maxlat, minlon, maxlon FROM entry_rtree WHERE id = ?", (eid,)).fetchone()
 
@@ -891,12 +1045,29 @@ class SearchEngine:
             ranked = sorted((Candidate(c.row, c.score + hbonus(c), c.how, c.tier) if c.row[R_ID] in houses else c
                              for c in ranked), key=lambda c: -c.score)
         results, shown = [], []
+        if not p["house"]:
+            # two streets and the word between them: where they meet goes first (step 7)
+            results = self.crossings(text, user)[:limit]
+            if results:
+                labels.append({"text": text.strip(), "as": "crossing", "match": results[0]["title"]})
         for c in ranked:
+            if len(results) >= limit:
+                break
             r = c.row
             title, rlat, rlon = r[R_NAME], r[R_LAT], r[R_LON]
             hit = houses.get(r[R_ID])
             if hit:
                 title, rlat, rlon = f"{p['house']} {r[R_NAME]}", hit[0], hit[1]
+            elif r[R_KIND] == KIND_STREET and user and self.has_lines:
+                # a street is where its line comes nearest to the user, not at its middle (step 7). The
+                # nearest point is found on a flat plane around the user; it is taken only when it is
+                # nearer than the street's own point as every other distance measures (hundreds of km
+                # away the plane bends)
+                nb = lines.nearest(self.street_lines(r[R_ID]), user[0], user[1])
+                if nb is not None:
+                    nlat, nlon = round(nb[1], 6), round(nb[2], 6)
+                    if haversine_km(user[0], user[1], nlat, nlon) < haversine_km(user[0], user[1], rlat, rlon):
+                        rlat, rlon = nlat, nlon
             if any(s[0] == title and haversine_km(s[1], s[2], rlat, rlon) < S["dedupe_km"] for s in shown):
                 continue
             shown.append((title, rlat, rlon))

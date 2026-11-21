@@ -89,5 +89,22 @@
     "version_table": "meta",
     "version_key": "normalisation_table_version",
     "house_margin_deg": 0.004
+  },
+  "crossing": {
+    "_doc": "Two streets and a word between them ('state st and 12th', '&' folds to 'and', '@' reads as 'at'): where their lines (pack table street_line) come within within_m of each other. Meetings nearer than apart_m are one crossing (a divided road's two carriageways). candidates_per_side streets are asked for each side; at most max_pairs pairs whose boxes (grown by box_margin_deg) overlap are measured, and no more than max_segment_tests segment pairs in all (a pair that would go over is left out); max_results crossings are shown, before every other result, with this score.",
+    "words": ["and", "at"],
+    "within_m": 15.0,
+    "apart_m": 120.0,
+    "candidates_per_side": 40,
+    "max_pairs": 200,
+    "max_segment_tests": 600000,
+    "box_margin_deg": 0.0003,
+    "max_results": 5,
+    "score": 3.0
+  },
+  "near_street": {
+    "_doc": "The street at a point (a dropped pin): the nearest street line within within_m, among at most max_streets streets whose box holds the point.",
+    "within_m": 60.0,
+    "max_streets": 400
   }
 }

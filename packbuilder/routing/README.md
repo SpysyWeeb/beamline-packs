@@ -51,7 +51,7 @@ python packbuilder/routing/build.py all
 
 | step | what it does | output (under `data/routing/`) |
 |---|---|---|
-| `inputs` | waits until `data/osm/*-261114.osm.pbf` match their `.md5`, merges PA + OH and drops the objects both extracts contain (`merge_osm.py`) | `osm/pa-oh-261114.osm.pbf` |
+| `inputs` | waits until `data/osm/*-261114.osm.pbf` match their `.md5`, merges PA + OH and drops the objects both extracts contain (`merge_osm.py`), then opens the entrance pieces tagged as driveways (`driveways.py`; 4,112 ways in Pennsylvania's 2026-11-14 extract) | `osm/pa-oh-261114.osm.pbf` |
 | `timezones` | downloads timezone-boundary-builder 2026d (SHA-256 pinned), builds the timezone DB with the wheel's own SQLite/SpatiaLite (`tzdb.py`) | `build/tz_world.sqlite` |
 | `config` | `valhalla_build_config` with our paths, 4 threads, driving-only graph | `build/valhalla.json` |
 | `boundaries` | complete US/PA/OH/neighbour boundary relations at the snapshot time (`fetch_boundaries.py`) | `osm/boundaries-261114.osm.pbf` |
@@ -132,6 +132,7 @@ The Android app copies `presets.json`, `device_config.json`, `banner.json`,
 |---|---|
 | `common.py` | paths, running the wheel's tools, wall time / memory measurement |
 | `merge_osm.py` | streaming merge of sorted PBFs with de-duplication (pyosmium) |
+| `driveways.py` | the entrance pieces of lots tagged `service=driveway` go into the graph's input as plain service roads (Valhalla closes driveways to through travel); the rule is in its head; `test_driveways.py` |
 | `tzdb.py` | timezone DB without the spatialite CLI |
 | `fetch_boundaries.py` | complete admin boundary relations (Overpass attic query, OSM API fallback) |
 | `build.py` | the build steps above |

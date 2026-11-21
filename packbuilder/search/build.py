@@ -194,6 +194,10 @@ CREATE TABLE poi(entry_id INTEGER PRIMARY KEY, osm TEXT, cats TEXT, brand TEXT, 
 -- is on). The entry's own point stays the centroid. An app that does not know the table ignores it.
 CREATE TABLE poi_door(entry_id INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL, how TEXT NOT NULL)
   WITHOUT ROWID;
+-- The line of a street entry (lines.py: the ways it was made from, simplified to about 4 m, as steps of
+-- 1e-5 degree in varints): how far the street is from a point, where two streets cross, which street a
+-- point is on. A street whose ways have fewer than two points in its municipality has no row.
+CREATE TABLE street_line(entry_id INTEGER PRIMARY KEY, line BLOB NOT NULL);
 CREATE TABLE poi_cat(cat_id INTEGER, entry_id INTEGER, PRIMARY KEY(cat_id, entry_id)) WITHOUT ROWID;
 CREATE TABLE context(entry_id INTEGER, place_id INTEGER, source INTEGER, weight REAL,
   PRIMARY KEY(entry_id, place_id)) WITHOUT ROWID;
@@ -319,6 +323,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     import numpy as np
     import shapely
     import geo
+    import lines as street_lines
     import normalize
     import rules
 
@@ -641,15 +646,29 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     bnd = np.flatnonzero(np.diff(scomp)) + 1
     st_ = np.concatenate([[0], bnd])
     en_ = np.concatenate([bnd, [len(scomp)]])
-    portions = []  # (way index, loc, minx, miny, maxx, maxy, length, midx, midy)
+    portions = []  # (way index, loc, minx, miny, maxx, maxy, length, midx, midy, runs)
+    nv = len(vx)
     for s, e in zip(st_, en_):
         ii = sidx[s:e]
         w = int(widx[ii[0]])
         lc = int(loc[ii[0]])
         mid = ii[len(ii) // 2]
+        # the runs of vertices of this way in this locality (ii ascends), each one vertex longer at both
+        # ends where the way goes on, so the lines of a street's two municipalities meet at the border
+        runs = []
+        brk = np.flatnonzero(np.diff(ii) != 1) + 1
+        for a_, b_ in zip(np.concatenate([[0], brk]), np.concatenate([brk, [len(ii)]])):
+            i0, i1 = int(ii[a_]), int(ii[b_ - 1])
+            if i0 > 0 and widx[i0 - 1] == w:
+                i0 -= 1
+            if i1 + 1 < nv and widx[i1 + 1] == w:
+                i1 += 1
+            if i1 > i0:
+                runs.append((i0, i1))
         portions.append((w, lc, float(vx[ii].min()), float(vy[ii].min()), float(vx[ii].max()),
-                         float(vy[ii].max()), float(seglen[ii].sum()), float(vx[mid]), float(vy[mid])))
-    del vx, vy, vm, vc, loc, widx, seglen, sidx, scomp
+                         float(vy[ii].max()), float(seglen[ii].sum()), float(vx[mid]), float(vy[mid]), runs))
+    del vm, vc, loc, widx, seglen, sidx, scomp
+    line_runs = []   # (street entry id, first vertex, last vertex) of vx/vy: the lines of the streets
     lap(f"road portions: {len(portions)}")
 
     def road_name(r):
@@ -746,6 +765,9 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
                                 (addr_street_key(name) or None) if addr_street_key else None))
             rtree_rows.append((eid, miny, maxy, minx, maxx))
             n_streets += 1
+            for p in cl:
+                for i0, i1 in p[9]:
+                    line_runs.append((eid, i0, i1))
             # postal city / ZIP context from addresses on this street key in this municipality
             skey_id = street_sid.get(normalize.street_key(name))
             if skey_id is not None and lc < nm:
@@ -763,6 +785,43 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
                                 ctx[eid][pid] = (5, 1.0)
     del portions, groups, rg
     lap(f"streets: {n_streets}")
+
+    # ---------------- the lines of the streets (lines.py) ----------------
+    street_line_rows = []
+    line_points = 0
+    if line_runs:
+        n_runs = len(line_runs)
+        lens = np.fromiter((r[2] - r[1] + 1 for r in line_runs), np.int64, n_runs)
+        starts = np.fromiter((r[1] for r in line_runs), np.int64, n_runs)
+        offs = np.concatenate([[0], np.cumsum(lens)])
+        idx = np.repeat(starts - offs[:-1], lens) + np.arange(offs[-1])
+        geoms = shapely.linestrings(np.column_stack([vx[idx], vy[idx]]), indices=np.repeat(np.arange(n_runs), lens))
+        del idx
+        simple = shapely.simplify(geoms, street_lines.SIMPLIFY_DEG, preserve_topology=False)
+        del geoms
+        sc, si = shapely.get_coordinates(simple, return_index=True)
+        del simple
+        qlat = np.rint(sc[:, 1] * street_lines.SCALE).astype(np.int64).tolist()
+        qlon = np.rint(sc[:, 0] * street_lines.SCALE).astype(np.int64).tolist()
+        bnd = (np.flatnonzero(np.diff(si)) + 1).tolist()
+        run_of = si[[0] + bnd].tolist()
+        del sc
+        by_street = collections.defaultdict(list)
+        for k, (s, e) in enumerate(zip([0] + bnd, bnd + [len(si)])):
+            pts = [(qlat[s], qlon[s])]
+            for i in range(s + 1, e):
+                if qlat[i] != pts[-1][0] or qlon[i] != pts[-1][1]:
+                    pts.append((qlat[i], qlon[i]))
+            if len(pts) >= 2:
+                by_street[line_runs[run_of[k]][0]].append(pts)
+        del qlat, qlon, si
+        for eid in sorted(by_street):
+            street_line_rows.append((eid, street_lines.encode(by_street[eid])))
+            line_points += sum(len(x) for x in by_street[eid])
+        del by_street
+    del vx, vy, line_runs
+    lap(f"street lines: {len(street_line_rows)} streets, {line_points} points, "
+        f"{sum(len(b) for _, b in street_line_rows)} bytes")
 
     # ---------------- parks (for in_park categories) ----------------
     PARKS = [pk for pk in ex.get("parks", []) if normalize.key(pk["name"])]
@@ -1017,6 +1076,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
              e.get("brand"), e.get("subtitle")) for e in entries))
         db.executemany("INSERT INTO place VALUES (?,?,?,?,?)", place_rows)
         db.executemany("INSERT INTO street VALUES (?,?,?,?,?)", street_rows)
+        db.executemany("INSERT INTO street_line VALUES (?,?)", street_line_rows)
         db.executemany("INSERT INTO poi VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", poi_rows)
         db.executemany("INSERT INTO poi_door VALUES (?,?,?,?)", ((e, *d) for e, d in sorted(door_rows.items())))
         db.executemany("INSERT OR IGNORE INTO poi_cat VALUES (?,?)", poicat_rows)
@@ -1104,6 +1164,8 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
                                                     state_poly.bounds[0], state_poly.bounds[2])),
             "bbox_order": "minlat,maxlat,minlon,maxlon (state boundary)",
             "poi_prefix_cell": "cell = (floor(lat*10)+900)*4000 + floor(lon*10)+1800; p3 = first 3 characters of name_key",
+            "street_line": "1: lines.py (varint line count; per line varint point count, then zigzag varint lat and lon "
+                           "steps of 1e-5 degree from the point before, the first from 0,0)",
             "addr_key": json.dumps(addr_key_info),
             # pack format 3 (docs/architecture.md 2.11): copied into the manifest's search part
             "addr_key_table_version": addr_key_info.get("table_version", ""),
@@ -1129,6 +1191,8 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     os.replace(tmp, out)
     lap("indexes, optimize, vacuum")
     counts = {"entries": len(entries), "places": len(place_rows), "streets": len(street_rows),
+              "street_lines": len(street_line_rows), "street_line_points": line_points,
+              "street_line_bytes": sum(len(b) for _, b in street_line_rows),
               "pois": len(poi_rows), "poi_doors": len(door_rows),
               "poi_doors_by_how": {h: sum(1 for d in door_rows.values() if d[2] == h) for h in ("main", "entrance", "parking")},
               "context_rows": stored["context"], "poi_cat_rows": stored["poi_cat"],

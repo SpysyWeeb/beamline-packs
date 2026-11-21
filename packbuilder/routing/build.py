@@ -5,7 +5,8 @@ usage (from the repo root, with the routing venv):
     .venv/routing/Scripts/python packbuilder/routing/build.py tiles --force
 
 steps, in order (each is skipped when its output exists, unless --force):
-    inputs     wait for data/osm/*.osm.pbf to match their .md5, merge PA+OH (merge_osm.py)
+    inputs     wait for data/osm/*.osm.pbf to match their .md5, merge PA+OH (merge_osm.py), open the
+               entrance pieces tagged as driveways (driveways.py)
     timezones  download the pinned timezone shapefile, build tz_world.sqlite (tzdb.py)
     config     write data/routing/build/valhalla.json with valhalla_build_config
     boundaries complete US/PA/OH/neighbour boundary relations at the snapshot time (fetch_boundaries.py)
@@ -39,6 +40,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common as C  # noqa: E402
+import driveways  # noqa: E402
 
 STAMPS = C.BUILD / "stamps"
 
@@ -80,31 +82,32 @@ def stamp(step: str, info: dict, sig: dict | None = None) -> None:
 # ---------------------------------------------------------------- inputs
 def step_inputs(force: bool) -> None:
     raw = [C.OSM_IN / f"{name}-{C.SNAPSHOT}.osm.pbf" for name in C.STATES.values()]
-    if done("inputs", signature(raw)) and C.MERGED_PBF.exists() and not force:
-        print("[inputs] merged extract exists, skipping")
+    sig = signature(raw, driveways_rule=driveways.RULE)
+    if done("inputs", sig) and C.MERGED_PBF.exists() and not force:
+        print("[inputs] the graph's input exists, skipping")
         return
     pbfs = [C.wait_for_osm_input(f"{name}-{C.SNAPSHOT}.osm.pbf") for name in C.STATES.values()]
+    C.MERGED_PBF.parent.mkdir(parents=True, exist_ok=True)
     if len(pbfs) == 1:
-        # one state: its extract is the graph's input as it is (a hard link, else a copy)
-        C.MERGED_PBF.parent.mkdir(parents=True, exist_ok=True)
-        C.MERGED_PBF.unlink(missing_ok=True)
-        try:
-            os.link(pbfs[0], C.MERGED_PBF)
-        except OSError:
-            import shutil
-            shutil.copyfile(pbfs[0], C.MERGED_PBF)
-        stamp("inputs", {"single_state": pbfs[0].name, "inputs": {pbfs[0].name: pbfs[0].stat().st_size}},
-              signature(raw))
+        # one state: its extract is the graph's input, with the entrance driveways opened (driveways.py)
+        opened = driveways.open_entrances(pbfs[0], C.MERGED_PBF)
+        print(f"[inputs] {opened['driveways_opened']} entrance driveways opened", flush=True)
+        stamp("inputs", {"single_state": pbfs[0].name, "inputs": {pbfs[0].name: pbfs[0].stat().st_size},
+                         "driveways": opened}, sig)
         return
     print(f"[inputs] md5 ok: {[p.name for p in pbfs]}; merging", flush=True)
-    res = C.run_measured([sys.executable, C.HERE / "merge_osm.py", C.MERGED_PBF, *pbfs],
+    merged = C.MERGED_PBF.with_name(C.MERGED_PBF.name.replace(".osm.pbf", ".merged.osm.pbf"))
+    res = C.run_measured([sys.executable, C.HERE / "merge_osm.py", merged, *pbfs],
                          C.LOGS / "merge_osm.log")
     if res["returncode"] != 0:
         sys.exit(f"merge failed, see {res['log']}")
     log = (C.LOGS / "merge_osm.log").read_text()
     merge_info = json.loads(log[log.index("{"):])
-    res.update(merge=merge_info, inputs={p.name: p.stat().st_size for p in pbfs})
-    stamp("inputs", res, signature(raw))
+    opened = driveways.open_entrances(merged, C.MERGED_PBF)
+    merged.unlink()
+    print(f"[inputs] {opened['driveways_opened']} entrance driveways opened", flush=True)
+    res.update(merge=merge_info, inputs={p.name: p.stat().st_size for p in pbfs}, driveways=opened)
+    stamp("inputs", res, sig)
 
 
 # ---------------------------------------------------------------- timezones

@@ -25,6 +25,8 @@ Expectations (all mechanical):
                        was located through the addresses database (house_located), whose
                        point lies within 0.1 km of house_at. Skipped (not counted) when
                        the addresses database is not attached.
+  (type "crossing": two streets and the word between them; these cases are skipped for a pack
+   built before the streets' lines, which cannot answer them)
   optional within_km   the matching result must lie within this distance of
                        the bias point (or of "of": a point name, or "of_point": [lat, lon])
 
@@ -207,6 +209,7 @@ def main() -> None:
     out = []
     skipped = []
     bad_distance = []
+    no_lines = []
     for c in cases:
         if args.type and c["type"] != args.type:
             continue
@@ -214,6 +217,9 @@ def main() -> None:
             continue
         if "house" in c["expect"] and not eng.addr_ok:
             skipped.append(c["id"])
+            continue
+        if c["type"] == "crossing" and not eng.has_lines:
+            no_lines.append(c["id"])   # a pack built before the streets' lines (table street_line)
             continue
         bias = None
         if "at" in c:
@@ -228,8 +234,10 @@ def main() -> None:
             anchor = tuple(exp["of_point"])
         res = eng.search(c["q"], bias[0] if bias else None, bias[1] if bias else None, limit=10)
         for r in res["results"]:
-            if bias and r["distance_km"] is not None and \
-                    abs(r["distance_km"] - query.haversine_km(bias[0], bias[1], r["lat"], r["lon"])) > 0.02:
+            if not bias or r["distance_km"] is None:
+                continue
+            # every result is as far away as the point it gives (a street: the nearest point of its line)
+            if abs(r["distance_km"] - query.haversine_km(bias[0], bias[1], r["lat"], r["lon"])) > 0.02:
                 bad_distance.append((c["id"], r["title"], r["distance_km"]))
         hits = [chk.match(r, exp, anchor) for r in res["results"][:5]]
         top1 = bool(hits[:1] and hits[0])
@@ -268,6 +276,8 @@ def main() -> None:
               f"{(tot['top5'] / ng if ng else 0):>17.0%}")
     if skipped:
         print(f"skipped {len(skipped)} house-number cases: addresses database not attached")
+    if no_lines:
+        print(f"skipped {len(no_lines)} crossing cases: the pack has no street lines")
     if eng.addr_warning:
         print("WARNING:", eng.addr_warning)
     print(f"results whose distance_km disagrees with their coordinates: {len(bad_distance)}")
