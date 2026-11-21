@@ -1,0 +1,22 @@
+{
+  "_doc": "Named bias points for tests and the CLI (approximate downtown / campus points, written from general knowledge of the places).",
+  "points": {
+    "erie": {"lat": 42.1292, "lon": -80.0851},
+    "erie_peach_upper": {"lat": 42.0632, "lon": -80.0990},
+    "pittsburgh": {"lat": 40.4406, "lon": -79.9959},
+    "harrisburg": {"lat": 40.2637, "lon": -76.8823},
+    "philadelphia": {"lat": 39.9526, "lon": -75.1652},
+    "state_college": {"lat": 40.7934, "lon": -77.8600},
+    "scranton": {"lat": 41.4090, "lon": -75.6624},
+    "allentown": {"lat": 40.6023, "lon": -75.4714},
+    "lancaster": {"lat": 40.0379, "lon": -76.3055},
+    "altoona": {"lat": 40.5187, "lon": -78.3947},
+    "williamsport": {"lat": 41.2412, "lon": -77.0011},
+    "wilkes_barre": {"lat": 41.2459, "lon": -75.8813},
+    "breezewood": {"lat": 39.9987, "lon": -78.2420},
+    "i80_clarion": {"lat": 41.1960, "lon": -79.3950},
+    "cleveland": {"lat": 41.4993, "lon": -81.6944},
+    "youngstown": {"lat": 41.0998, "lon": -80.6495},
+    "columbus": {"lat": 39.9612, "lon": -82.9988}
+  }
+}

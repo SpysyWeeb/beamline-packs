@@ -1,0 +1,962 @@
+{
+  "addrfeat_39001": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39001_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39001_addrfeat.zip",
+    "bytes": 843916,
+    "sha256": "5f85cee050cb626873a9c7668fc48febd8539fadf4a3b0f144b0ce2566bc6dea"
+  },
+  "addrfeat_39003": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39003_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39003_addrfeat.zip",
+    "bytes": 991798,
+    "sha256": "977fa8877dc9341c9e958abc3dd811e34ffef973c982550fd54dcaa945e948c5"
+  },
+  "addrfeat_39005": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39005_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39005_addrfeat.zip",
+    "bytes": 716538,
+    "sha256": "1e0dd10cecbd1bd7acbc6d7e06cc921a5f5da9117d44a063bba3b18b49819ed9"
+  },
+  "addrfeat_39007": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39007_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39007_addrfeat.zip",
+    "bytes": 874636,
+    "sha256": "505f973925586cc00fb3cef2b191059a2af471bf6602be1e73e55cca5d58eabe"
+  },
+  "addrfeat_39009": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39009_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39009_addrfeat.zip",
+    "bytes": 1069460,
+    "sha256": "f5da772f60af80432a424e4f60617e62486d84d888c2dda49edac42255c52b6d"
+  },
+  "addrfeat_39011": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39011_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39011_addrfeat.zip",
+    "bytes": 677420,
+    "sha256": "6ccce1056cc3d5cc237ff59b61d1b9ec2e5dad5ff487331268ddd53f72e3cada"
+  },
+  "addrfeat_39013": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39013_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39013_addrfeat.zip",
+    "bytes": 1574679,
+    "sha256": "0a33bc6cb7b18a508bf231e42438828638659e37a2c7b118c05fbe4eb6ad439b"
+  },
+  "addrfeat_39015": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39015_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39015_addrfeat.zip",
+    "bytes": 886421,
+    "sha256": "1b9d21cbb84045b4b2513455226e6ed6c7c6f8e01d681ee18b14fe8a4a3d19f2"
+  },
+  "addrfeat_39017": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39017_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39017_addrfeat.zip",
+    "bytes": 2375156,
+    "sha256": "cecebe9d2e05d7e0ddfc09b35a44bbee8eaa4cd44ed3c1e9c773e1685ca722e3"
+  },
+  "addrfeat_39019": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39019_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39019_addrfeat.zip",
+    "bytes": 810412,
+    "sha256": "f27bb88d696f145daacc2c2a40ed335eed078935e0a5ee5ccc893e5c74fad620"
+  },
+  "addrfeat_39021": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39021_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39021_addrfeat.zip",
+    "bytes": 538439,
+    "sha256": "c465743d513c3060bd47f143d3a217f5c8e410972a2d4dfe6783c75a49f92517"
+  },
+  "addrfeat_39023": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39023_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39023_addrfeat.zip",
+    "bytes": 921142,
+    "sha256": "643d2f01962b0bb9eab12090fd6c620ad332f25e768e07cefd1b824992a70fa7"
+  },
+  "addrfeat_39025": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39025_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39025_addrfeat.zip",
+    "bytes": 1970216,
+    "sha256": "0256392dd4656d3af0cf28b1e7caf457934d8d5acdc790d7cc73d8cb954b7bb5"
+  },
+  "addrfeat_39027": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39027_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39027_addrfeat.zip",
+    "bytes": 442440,
+    "sha256": "3eb15cd2e798c2c89166bab61e1ef799f14f5cfc84a9eaa06c213e6570cf7f0c"
+  },
+  "addrfeat_39029": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39029_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39029_addrfeat.zip",
+    "bytes": 1517220,
+    "sha256": "2dab7a81b20c6a8a383e17254989823f589a3b895cbcee451f8519b010191187"
+  },
+  "addrfeat_39031": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39031_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39031_addrfeat.zip",
+    "bytes": 908254,
+    "sha256": "4086f1a3d1d626b016f188529e54748d67d025260ba219d5025b54138d2e794a"
+  },
+  "addrfeat_39033": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39033_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39033_addrfeat.zip",
+    "bytes": 462844,
+    "sha256": "37ff23014674dfcc9daf6d253e35f63d58c573a22996057b69a809fe05e3dd68"
+  },
+  "addrfeat_39035": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39035_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39035_addrfeat.zip",
+    "bytes": 3500186,
+    "sha256": "a9a08271c7986cb67c3963b4f36bb30fbec49bf6a2c28c5a37e185003824c456"
+  },
+  "addrfeat_39037": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39037_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39037_addrfeat.zip",
+    "bytes": 955893,
+    "sha256": "818744ac388b28ada42349fdb15000571ac571788e3ab408d6087456c0fc6717"
+  },
+  "addrfeat_39039": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39039_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39039_addrfeat.zip",
+    "bytes": 683928,
+    "sha256": "cbd0f35775aeb9c05ffb66c43fbf3e3a67a5dc8ad9727ec23b04d53d160e0e35"
+  },
+  "addrfeat_39041": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39041_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39041_addrfeat.zip",
+    "bytes": 1527538,
+    "sha256": "1c4b31be5ec238ba1839600c3fba1d2452a113b3c37f42bf5b58f35ba195e0c0"
+  },
+  "addrfeat_39043": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39043_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39043_addrfeat.zip",
+    "bytes": 659371,
+    "sha256": "bd209f766451a3dd782ac33fd60f144ed82327204da1b5eb66b28a4735cdc08d"
+  },
+  "addrfeat_39045": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39045_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39045_addrfeat.zip",
+    "bytes": 1341374,
+    "sha256": "c26f4ff331b35068c397c0915e289e0380c124cee347f4fb8c462c00ad101ba6"
+  },
+  "addrfeat_39047": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39047_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39047_addrfeat.zip",
+    "bytes": 367493,
+    "sha256": "e05f6d0c608814204f8283a695101eae29d490fd8794de484e4bb98488d7c2a3"
+  },
+  "addrfeat_39049": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39049_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39049_addrfeat.zip",
+    "bytes": 5373116,
+    "sha256": "0ce7ef288da677f1e70a3002fd7d186dad54766fabcd803a68501251f2b8abcd"
+  },
+  "addrfeat_39051": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39051_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39051_addrfeat.zip",
+    "bytes": 669279,
+    "sha256": "6905d586207658d8cc1d9c5d6b382c1105deeeb768ef7b31a206bcf602ddc20f"
+  },
+  "addrfeat_39053": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39053_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39053_addrfeat.zip",
+    "bytes": 806770,
+    "sha256": "d225ff1324ffb6755f4fa712be4b9f61ed2bb74664263915675365e5ca2503c5"
+  },
+  "addrfeat_39055": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39055_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39055_addrfeat.zip",
+    "bytes": 540356,
+    "sha256": "34e6f203a250285a3f483ffa984b79a5e41ddd55e8b696c4bd958706fa667e25"
+  },
+  "addrfeat_39057": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39057_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39057_addrfeat.zip",
+    "bytes": 1264154,
+    "sha256": "d3d443fb7eeaeeaa32a62628cd1b900000aa3a3088e7f29b7025d1274a5558b5"
+  },
+  "addrfeat_39059": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39059_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39059_addrfeat.zip",
+    "bytes": 1022907,
+    "sha256": "ccb9799aeca85388b9d4f98b4ae607c2dbdb53487bdbea403ebeb5e102e01e4a"
+  },
+  "addrfeat_39061": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39061_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39061_addrfeat.zip",
+    "bytes": 3226172,
+    "sha256": "3dc936c305c37d01d239d72543670083cb88bb68ff19e01bd567cc34f7b8154b"
+  },
+  "addrfeat_39063": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39063_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39063_addrfeat.zip",
+    "bytes": 686354,
+    "sha256": "ca0e222f7a727594a58cf6f25de5eac80079e49e32320eae63c2a19b0f6ae3da"
+  },
+  "addrfeat_39065": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39065_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39065_addrfeat.zip",
+    "bytes": 369118,
+    "sha256": "3e75ff75804890bf40174c8b0d8b80fbb2d9828345665b665b087bf60f4c9b26"
+  },
+  "addrfeat_39067": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39067_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39067_addrfeat.zip",
+    "bytes": 573207,
+    "sha256": "d3842ee2cf8270d309909effdfc70dd623ed6e5e8fda4323a836120767dd1cb7"
+  },
+  "addrfeat_39069": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39069_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39069_addrfeat.zip",
+    "bytes": 638027,
+    "sha256": "65fa2de78441e8847e712df47cf7e6d0e03fab182c88fec1033693b8f9b50f0e"
+  },
+  "addrfeat_39071": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39071_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39071_addrfeat.zip",
+    "bytes": 751281,
+    "sha256": "4ea83f777f3c6204e9f386fa13442e60d9150284f04772d0e4318deaaca3708c"
+  },
+  "addrfeat_39073": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39073_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39073_addrfeat.zip",
+    "bytes": 889261,
+    "sha256": "07ba2bc5dd9b77581111f82ebaf44641407bb066b248c28551f732d966fafa34"
+  },
+  "addrfeat_39075": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39075_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39075_addrfeat.zip",
+    "bytes": 1107574,
+    "sha256": "5250d90c5e80e81b0123f9b635a0dd010b1889e20e51a6a980c52fc46eb677e9"
+  },
+  "addrfeat_39077": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39077_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39077_addrfeat.zip",
+    "bytes": 750022,
+    "sha256": "66bb59673e75e49e0fcf1d56aa5ac31d71e3c669eb135987a36a443ff308cefe"
+  },
+  "addrfeat_39079": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39079_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39079_addrfeat.zip",
+    "bytes": 766379,
+    "sha256": "c5f04fb93845ab0b9aa9608d045b34124b9abea0abddeb351b6b514e21fc8017"
+  },
+  "addrfeat_39081": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39081_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39081_addrfeat.zip",
+    "bytes": 931358,
+    "sha256": "ba8a97b3353fc16d51a2bd4ddbc347cb6f46b3ab1179763f1ec9900af6e3a66e"
+  },
+  "addrfeat_39083": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39083_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39083_addrfeat.zip",
+    "bytes": 926538,
+    "sha256": "33f8d42d230920c5f79f8506c905e75f6be4757bb4ad269827ddedce056d3161"
+  },
+  "addrfeat_39085": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39085_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39085_addrfeat.zip",
+    "bytes": 1321994,
+    "sha256": "01eba79ec5b1398ca8e0d1b78b01a3692cd115c08c78cbfe735006dbf9b09cf9"
+  },
+  "addrfeat_39087": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39087_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39087_addrfeat.zip",
+    "bytes": 1022822,
+    "sha256": "4da2cde2ed2a1fcf1565623477499db869e077d34d01a92308b8127519db24b2"
+  },
+  "addrfeat_39089": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39089_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39089_addrfeat.zip",
+    "bytes": 2100817,
+    "sha256": "7fea46e3d6ab37bfc1d47b0ced99d75fbe9082c2e00df3c1728c8596ccd40db5"
+  },
+  "addrfeat_39091": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39091_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39091_addrfeat.zip",
+    "bytes": 641087,
+    "sha256": "323549a979a4c3fb5ff5ece531d44db57a6bff29cebf17d6338bf39e3fa7e402"
+  },
+  "addrfeat_39093": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39093_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39093_addrfeat.zip",
+    "bytes": 1350647,
+    "sha256": "e52e51d004bf67c471cccdf90bfa52da8e0a92b3c16c7a29ec7eaed177d40e10"
+  },
+  "addrfeat_39095": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39095_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39095_addrfeat.zip",
+    "bytes": 1705629,
+    "sha256": "4586796c323c5df95cb64aadbd25d2255f467b34d6e2ef4ed4c4dd480fbdf383"
+  },
+  "addrfeat_39097": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39097_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39097_addrfeat.zip",
+    "bytes": 457126,
+    "sha256": "048fdd3b3c9b2938107b458f50c1919194e65ff633b0d99154c8491a450bde72"
+  },
+  "addrfeat_39099": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39099_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39099_addrfeat.zip",
+    "bytes": 1404570,
+    "sha256": "1f4885696443818dd66dff8f647bc52cfef2e4dec05378a2d85612e7a4ba7860"
+  },
+  "addrfeat_39101": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39101_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39101_addrfeat.zip",
+    "bytes": 579768,
+    "sha256": "01eb3ea5f371d9ee9f550ccbf51e92e4672c570fb0b034f8cf432895af2d7c64"
+  },
+  "addrfeat_39103": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39103_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39103_addrfeat.zip",
+    "bytes": 818926,
+    "sha256": "1908e29a5cd78898bccbf6c4cbafe60934aaaf898a212b1108ce1fdf24991e6b"
+  },
+  "addrfeat_39105": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39105_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39105_addrfeat.zip",
+    "bytes": 805612,
+    "sha256": "56f08de2859f7102daed8495aa7211c570dbe440fb0ab0f273b47017551204bd"
+  },
+  "addrfeat_39107": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39107_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39107_addrfeat.zip",
+    "bytes": 679507,
+    "sha256": "7edf41b420800220ca46a5ad2fa7ab03bc5c0d84f70eb6f2de5739ac757736c3"
+  },
+  "addrfeat_39109": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39109_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39109_addrfeat.zip",
+    "bytes": 746235,
+    "sha256": "5aead29d3329e96729c736a3c5f13273d1b069bb680845032894dcd6b71bf809"
+  },
+  "addrfeat_39111": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39111_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39111_addrfeat.zip",
+    "bytes": 918532,
+    "sha256": "fad6f4aab22c15bf5943f73c709b3dd76c0fb37eb9ac4ccff00819f02bc86a90"
+  },
+  "addrfeat_39113": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39113_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39113_addrfeat.zip",
+    "bytes": 3269223,
+    "sha256": "272ec7e49f9496724d28d39d8aa8b6813347bf55ba8b4e74517024c13ee75a74"
+  },
+  "addrfeat_39115": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39115_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39115_addrfeat.zip",
+    "bytes": 615666,
+    "sha256": "eaab29d51b3864fd3c02827c7909c2b3f11c5e529b2ea769046519c020d1a5af"
+  },
+  "addrfeat_39117": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39117_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39117_addrfeat.zip",
+    "bytes": 415653,
+    "sha256": "95adc30d9be023a21029b6e709432714682d8e102adffca9d699f2209fc3c557"
+  },
+  "addrfeat_39119": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39119_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39119_addrfeat.zip",
+    "bytes": 1594387,
+    "sha256": "1c8cac674bd7609b80e1ff6c6eb0737d69842881cf6cdaba1dca1a99f137dcdf"
+  },
+  "addrfeat_39121": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39121_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39121_addrfeat.zip",
+    "bytes": 690493,
+    "sha256": "80aea7302e0cdffa1cfe699129f489a2149fde191ff91617f401def18e3e3713"
+  },
+  "addrfeat_39123": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39123_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39123_addrfeat.zip",
+    "bytes": 557064,
+    "sha256": "fd98be24822615b643a6355f0e3b04c65af01cab84c81bb62e190d60a0495f32"
+  },
+  "addrfeat_39125": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39125_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39125_addrfeat.zip",
+    "bytes": 393006,
+    "sha256": "99a544b1676b97fef28f84f8fe61af1cf4dac63f95315f7d729a156d648457b9"
+  },
+  "addrfeat_39127": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39127_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39127_addrfeat.zip",
+    "bytes": 675035,
+    "sha256": "29f738c850dedaa66165556babd94ba516086eb8ee6f0ca40bd8d47cf53aeeff"
+  },
+  "addrfeat_39129": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39129_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39129_addrfeat.zip",
+    "bytes": 1053794,
+    "sha256": "a4b189f9c7119ad11e07b7781355dd6fc642fa2c89129a0cc1d9402ad7af6161"
+  },
+  "addrfeat_39131": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39131_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39131_addrfeat.zip",
+    "bytes": 519222,
+    "sha256": "7d3ab4a981e4ea4dcb130c76d2bf5a247e168d47b3459d7c7008818a4e90b36a"
+  },
+  "addrfeat_39133": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39133_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39133_addrfeat.zip",
+    "bytes": 1203328,
+    "sha256": "e7a3f12f03449500e02e9600e5af7bfdb1a012082ac4bb3a5aa66ae8687c7586"
+  },
+  "addrfeat_39135": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39135_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39135_addrfeat.zip",
+    "bytes": 444273,
+    "sha256": "0e7964c6dae1b2ab6e43c356bcf9f0bf9143f55f3dacafeacdc0d45ea40cc0fa"
+  },
+  "addrfeat_39137": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39137_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39137_addrfeat.zip",
+    "bytes": 807178,
+    "sha256": "19f6900eb89de5fc3bf197632432a86e44a8e1d2d6f482b6b309bdaf3a4c2e37"
+  },
+  "addrfeat_39139": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39139_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39139_addrfeat.zip",
+    "bytes": 1389656,
+    "sha256": "b39894a16e7552429da15a1493d9b5ae835c29c216f00f62128f62e46a0e7ce7"
+  },
+  "addrfeat_39141": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39141_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39141_addrfeat.zip",
+    "bytes": 1071243,
+    "sha256": "afedc09a04059cbf0ec0472247a4e49d529b64de5a9fd1e3892f0328a8456b4b"
+  },
+  "addrfeat_39143": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39143_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39143_addrfeat.zip",
+    "bytes": 536633,
+    "sha256": "41cb1d5766dcf9ec4e75e039a86bf124c506555f0e50073fd1f945dd31b40ea7"
+  },
+  "addrfeat_39145": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39145_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39145_addrfeat.zip",
+    "bytes": 1190646,
+    "sha256": "ba2bbde187aba53335feb2a3285eaaa32c37cad7f24b153e4c8cdc8ff6145917"
+  },
+  "addrfeat_39147": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39147_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39147_addrfeat.zip",
+    "bytes": 521481,
+    "sha256": "bcbfff6bcab29bb1a8048a04749e88c70c43e371b43c40c4dba22f5b2645256a"
+  },
+  "addrfeat_39149": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39149_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39149_addrfeat.zip",
+    "bytes": 484606,
+    "sha256": "c19902f06e9b13b4ec75134df1cb946b2f4f282c98d039c7ea65b29e1f1a7e8a"
+  },
+  "addrfeat_39151": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39151_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39151_addrfeat.zip",
+    "bytes": 3082151,
+    "sha256": "098976e0958b5c05729b8b6b3b20080c6b578741572a83bbd002fa8ff212adbc"
+  },
+  "addrfeat_39153": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39153_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39153_addrfeat.zip",
+    "bytes": 3091003,
+    "sha256": "c39d066bd7d5d39d73cafd4a158126cdf0b373f3062dba65cc0483c1de951324"
+  },
+  "addrfeat_39155": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39155_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39155_addrfeat.zip",
+    "bytes": 1224464,
+    "sha256": "ea57a1f0d3e202e94419bde3c92604b39f8be4dc1ab91c3458b3e1b1f6c0a557"
+  },
+  "addrfeat_39157": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39157_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39157_addrfeat.zip",
+    "bytes": 1529188,
+    "sha256": "1227cd22eb8a67625500b44afcf5cbb1141edfd86c24efc14f6a21df83d2bd68"
+  },
+  "addrfeat_39159": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39159_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39159_addrfeat.zip",
+    "bytes": 440302,
+    "sha256": "dfbc53f5e27adc01b5173fa9eaa0d822b0ab93cec3d7b7e2d458bc2c326ee8d1"
+  },
+  "addrfeat_39161": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39161_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39161_addrfeat.zip",
+    "bytes": 533625,
+    "sha256": "9a9a463cb08e4831d8e6683a8ffd137562ab18a13d85cd4b564eeef82a29d7ec"
+  },
+  "addrfeat_39163": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39163_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39163_addrfeat.zip",
+    "bytes": 414609,
+    "sha256": "99e84b548e071c8bbd9011ac3c23135a2bf2ef4400669a74c97a0457f33632b2"
+  },
+  "addrfeat_39165": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39165_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39165_addrfeat.zip",
+    "bytes": 1489916,
+    "sha256": "754430400564ce670769c64ca6516c4efcf8655d3ecb48f5ac3855b6507b34ae"
+  },
+  "addrfeat_39167": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39167_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39167_addrfeat.zip",
+    "bytes": 1262654,
+    "sha256": "211a0e08c728730511848d2b37c6717bb9ee939edb45d08839bc08402b868ade"
+  },
+  "addrfeat_39169": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39169_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39169_addrfeat.zip",
+    "bytes": 916156,
+    "sha256": "2e11b52e561fc8c6e9405ad3e8ac7b563e270ab5cc84c80658bf9779b0288f1e"
+  },
+  "addrfeat_39171": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39171_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39171_addrfeat.zip",
+    "bytes": 717062,
+    "sha256": "850383071b2d8f99f6d3ec33cb549e750f59d6e3bdafc8c532e22abfb4e8fb3d"
+  },
+  "addrfeat_39173": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39173_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39173_addrfeat.zip",
+    "bytes": 1038302,
+    "sha256": "b9d30d632ef3528c4bf94f2506d6923ef26249e9efa81776e9b47c2f828a179b"
+  },
+  "addrfeat_39175": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_39175_addrfeat.zip",
+    "file": "data/r3-p/addresses-oh/download/addrfeat/tl_2026_39175_addrfeat.zip",
+    "bytes": 348258,
+    "sha256": "be6069c3425aa0bd6e637cc54623ebb725fbb54719604bdb01d204ae85099385"
+  },
+  "addrfeat_42001": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42001_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42001_addrfeat.zip",
+    "bytes": 1125175,
+    "sha256": "bf190a6d403c1e6039090798b6eb2278a0d59ac1985c1723008a36ae6e4ddf05"
+  },
+  "addrfeat_42003": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42003_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42003_addrfeat.zip",
+    "bytes": 8871249,
+    "sha256": "8b8501ac05f6dcfa66d928e40bc307b77781bcc9fd7d5edd3558b06dcfbe373b"
+  },
+  "addrfeat_42005": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42005_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42005_addrfeat.zip",
+    "bytes": 1350043,
+    "sha256": "f439be145650f38ce37bdfaa22bc9c72cd1088c771997459b6d7a98175c043cc"
+  },
+  "addrfeat_42007": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42007_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42007_addrfeat.zip",
+    "bytes": 1840406,
+    "sha256": "e2b380d865a0c2a2809858a0a11907cd9b10e7066c08451cedd5617a249f693d"
+  },
+  "addrfeat_42009": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42009_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42009_addrfeat.zip",
+    "bytes": 1530773,
+    "sha256": "4370a9741be5ee20c2882ffc373d9e9156bb88715b1940d2ff8696218d9d0b9e"
+  },
+  "addrfeat_42011": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42011_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42011_addrfeat.zip",
+    "bytes": 3283298,
+    "sha256": "b1e2baf9cd00bdd57d482c720188d84586a9e241a342f1d1ee470b4d1ebaa5d4"
+  },
+  "addrfeat_42013": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42013_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42013_addrfeat.zip",
+    "bytes": 1787206,
+    "sha256": "e8018c8656bf5f165cf41e91e64b76ed97024f1a642e87a6182febb7d219b8da"
+  },
+  "addrfeat_42015": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42015_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42015_addrfeat.zip",
+    "bytes": 1614823,
+    "sha256": "38668948d1f24b6cad2831fe3dfec84e980f0a0bf148bb671e2194cb2931d6af"
+  },
+  "addrfeat_42017": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42017_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42017_addrfeat.zip",
+    "bytes": 3968706,
+    "sha256": "1ec7adf1753abfa4fcdcbb23e182b433ba7c3ae4dcc485a1636be83e47183c43"
+  },
+  "addrfeat_42019": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42019_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42019_addrfeat.zip",
+    "bytes": 2698056,
+    "sha256": "8267c95c79c1dcb19ee10693d1ebf6901d9bd6de052b7d738b4d68739735c62d"
+  },
+  "addrfeat_42021": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42021_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42021_addrfeat.zip",
+    "bytes": 2282814,
+    "sha256": "2cc332d0dc7cd9f53c944e22ec4d37a64008e14067269ef6efe0da59658c4cb3"
+  },
+  "addrfeat_42023": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42023_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42023_addrfeat.zip",
+    "bytes": 240609,
+    "sha256": "f02bfcb56ebb51c36e9b8c5eb9523c717a7f7df091f25934427f920a45e4940e"
+  },
+  "addrfeat_42025": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42025_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42025_addrfeat.zip",
+    "bytes": 971135,
+    "sha256": "79ac817b7cdb991ecdfdacd4534f2c525abde9b1eb08946857894ddee6d7d8c2"
+  },
+  "addrfeat_42027": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42027_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42027_addrfeat.zip",
+    "bytes": 1718470,
+    "sha256": "e82889eab500de8dc4a6b64f6b59c106a12da53f3b443e5783ba8e82f29bad9c"
+  },
+  "addrfeat_42029": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42029_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42029_addrfeat.zip",
+    "bytes": 3848539,
+    "sha256": "6626b7bcc8162e73c037947a2d494a66da0634957bcffa2a4201527b43b2316d"
+  },
+  "addrfeat_42031": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42031_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42031_addrfeat.zip",
+    "bytes": 1100740,
+    "sha256": "832ddb82b432116029876262730895e13379330cc0593dd95d164f99f4dc99c6"
+  },
+  "addrfeat_42033": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42033_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42033_addrfeat.zip",
+    "bytes": 1923196,
+    "sha256": "ebfd3b27a17985d0a73b6f3181213f83adb92b6e1a12c81e440459f99d975f22"
+  },
+  "addrfeat_42035": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42035_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42035_addrfeat.zip",
+    "bytes": 906624,
+    "sha256": "82eab7514b23ecb6c8618ded2bccf065727856101b5554e08f0c116faef1dfda"
+  },
+  "addrfeat_42037": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42037_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42037_addrfeat.zip",
+    "bytes": 1132621,
+    "sha256": "27e08f6e6046e450fe8a21807a293249553a980d205a921a1abea06d1250b66c"
+  },
+  "addrfeat_42039": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42039_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42039_addrfeat.zip",
+    "bytes": 1602469,
+    "sha256": "3c90a5b327b1cef7c504b5ae0c167b5e4ca41fac057786b4f6f97b72d5162b7d"
+  },
+  "addrfeat_42041": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42041_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42041_addrfeat.zip",
+    "bytes": 2250825,
+    "sha256": "ad83d2944d7615091b302055c0faf994190408b5caa75f13ca02f890e6a0af76"
+  },
+  "addrfeat_42043": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42043_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42043_addrfeat.zip",
+    "bytes": 2524162,
+    "sha256": "4d3368a3d2eb8db4922cbb94bf7010388445e164427badd7d67da349b210ba8e"
+  },
+  "addrfeat_42045": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42045_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42045_addrfeat.zip",
+    "bytes": 2529257,
+    "sha256": "17bc2f4eab5282fb10c867a17d0f79f17e78f338483d881ae351e1f9d2e7e013"
+  },
+  "addrfeat_42047": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42047_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42047_addrfeat.zip",
+    "bytes": 661876,
+    "sha256": "2e5a739c48c769acda0680c7dc5d10ef9c6309e3c3447feac7f1baaf9fea3f7c"
+  },
+  "addrfeat_42049": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42049_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42049_addrfeat.zip",
+    "bytes": 1911032,
+    "sha256": "6c0bf4bbbc5dc4611858eb5acd3ac1c27ceea0db6df727a526a689c7bd03bafd"
+  },
+  "addrfeat_42051": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42051_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42051_addrfeat.zip",
+    "bytes": 1996856,
+    "sha256": "c64e478a230b732438301a4565ca74d111271507e1eef87d9a0e47d350bfb635"
+  },
+  "addrfeat_42053": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42053_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42053_addrfeat.zip",
+    "bytes": 323583,
+    "sha256": "a374f07baa8b8836fa756be48eb28f73d1531cbd96bcfa368ec108c7731ad57f"
+  },
+  "addrfeat_42055": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42055_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42055_addrfeat.zip",
+    "bytes": 1698276,
+    "sha256": "77b1b3e104b48882be99c42966b0e4a36398f67c7d62e25ec858989ffe417290"
+  },
+  "addrfeat_42057": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42057_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42057_addrfeat.zip",
+    "bytes": 542642,
+    "sha256": "6a344efce94125f77d15582d9edde6536adca7a823c212ef06f79c6dc16b7bdc"
+  },
+  "addrfeat_42059": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42059_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42059_addrfeat.zip",
+    "bytes": 711136,
+    "sha256": "33fafcbfe488336ce8a7e382f3eaa08cfaa04497f1e9cc80835674b7951fd1f6"
+  },
+  "addrfeat_42061": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42061_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42061_addrfeat.zip",
+    "bytes": 1338228,
+    "sha256": "d6d7940a9a9029697448c4b25a8207c42476b129a7cd9dc1abb4fa4425534364"
+  },
+  "addrfeat_42063": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42063_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42063_addrfeat.zip",
+    "bytes": 1228358,
+    "sha256": "1c2b33084cf931884f1b424ca072d32d2d3b0bff6eee0103b17a99ed22bb551c"
+  },
+  "addrfeat_42065": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42065_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42065_addrfeat.zip",
+    "bytes": 1184185,
+    "sha256": "d9dc5ebadaa6f87d4f84fc9bd60dc1bdf8029de83d7876e91cb0a7e6cc8cc940"
+  },
+  "addrfeat_42067": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42067_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42067_addrfeat.zip",
+    "bytes": 694314,
+    "sha256": "6bf7e6a4ee87d2c3c72cdb55d107abdcc910f546a2988a107152ce48a5bcb181"
+  },
+  "addrfeat_42069": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42069_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42069_addrfeat.zip",
+    "bytes": 2033255,
+    "sha256": "b0ee52b6c85209908d8bef840b721abd1e8a246d264f767f859b5a5590da590d"
+  },
+  "addrfeat_42071": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42071_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42071_addrfeat.zip",
+    "bytes": 3914928,
+    "sha256": "750d1f12d8e1dff4fecb196ba8d3aeedeec6cab6988b534f4d4cab0bd30a840e"
+  },
+  "addrfeat_42073": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42073_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42073_addrfeat.zip",
+    "bytes": 1160385,
+    "sha256": "0111cac1b648baf19736d9d7c8da6d9dcf51a9147ce5abef9f075d0b98fe4c02"
+  },
+  "addrfeat_42075": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42075_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42075_addrfeat.zip",
+    "bytes": 1273143,
+    "sha256": "f643c6b431c3f36fecf52d945db27bed9147400001d369eded9805f8007546b5"
+  },
+  "addrfeat_42077": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42077_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42077_addrfeat.zip",
+    "bytes": 2558150,
+    "sha256": "2392939c6a27d97780f2083d528afa99b3cb6bb72830a81bec22917a8f91fd92"
+  },
+  "addrfeat_42079": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42079_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42079_addrfeat.zip",
+    "bytes": 3080863,
+    "sha256": "bd0a58f0a1efbf0cfa877269ca400d761ec07b5e976e5a33e1be85454f2bc3dd"
+  },
+  "addrfeat_42081": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42081_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42081_addrfeat.zip",
+    "bytes": 2253897,
+    "sha256": "25ff8a402bd4cce5d93cb122ad0ad4bb0dc44483605736e98f550ce4cf532602"
+  },
+  "addrfeat_42083": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42083_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42083_addrfeat.zip",
+    "bytes": 642916,
+    "sha256": "cd429c63411bfa42151a7eafb1f4b7525f74acf821dac4fe09860516be4742ea"
+  },
+  "addrfeat_42085": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42085_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42085_addrfeat.zip",
+    "bytes": 1459956,
+    "sha256": "d6c996812a4384bdff72534bd30063544c6dd6a9fb719d41ffb93d3b8c307c9c"
+  },
+  "addrfeat_42087": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42087_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42087_addrfeat.zip",
+    "bytes": 756626,
+    "sha256": "a86129a318b4e22cc5b6f5f7d0d81ce7f0bccf7942f7780761568e861210174b"
+  },
+  "addrfeat_42089": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42089_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42089_addrfeat.zip",
+    "bytes": 2877544,
+    "sha256": "de12f12cbb899f2a85fd9ed038720532e7b5f259af3d2a45ca237f27795a656d"
+  },
+  "addrfeat_42091": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42091_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42091_addrfeat.zip",
+    "bytes": 4253318,
+    "sha256": "cfaa5b131727dd381d57e982561f16a3ec3564c1c51ce17cd1748217d94f8488"
+  },
+  "addrfeat_42093": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42093_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42093_addrfeat.zip",
+    "bytes": 323213,
+    "sha256": "f2186b6c976168b2d7142045b3ec7d55d9cfa102201c41f2fc5feee3dccfef40"
+  },
+  "addrfeat_42095": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42095_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42095_addrfeat.zip",
+    "bytes": 2000772,
+    "sha256": "6e706932456172d797a4d5e09e778c29631075dcd53f60b82b595a354e9058dc"
+  },
+  "addrfeat_42097": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42097_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42097_addrfeat.zip",
+    "bytes": 1134271,
+    "sha256": "df00c0203f128306c44ca2ef19d8437b866ba2466355d8e65ce3c876018377bd"
+  },
+  "addrfeat_42099": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42099_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42099_addrfeat.zip",
+    "bytes": 944452,
+    "sha256": "e000152f591d5ffc80d3c9c7a20ce1430f96bce4e5f2cca28246ceaa5132e36e"
+  },
+  "addrfeat_42101": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42101_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42101_addrfeat.zip",
+    "bytes": 2713328,
+    "sha256": "ec09a281bc7dd2e421a1e14a7fb0a19987d17737dab2e039c485e7118b676564"
+  },
+  "addrfeat_42103": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42103_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42103_addrfeat.zip",
+    "bytes": 1260789,
+    "sha256": "c820d4fb371465636f9b8ba513131010e058d8ed49a898e084b6f1780633ee7e"
+  },
+  "addrfeat_42105": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42105_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42105_addrfeat.zip",
+    "bytes": 657505,
+    "sha256": "0d7b5394adb6edbf3eac6b8eab976d07a54c4e8dbe9ecd146387cb4a7ce642d4"
+  },
+  "addrfeat_42107": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42107_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42107_addrfeat.zip",
+    "bytes": 2030912,
+    "sha256": "381017cddc46225e805789e4706d305fcd533b13400effec4227c7fc8864c7ae"
+  },
+  "addrfeat_42109": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42109_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42109_addrfeat.zip",
+    "bytes": 797342,
+    "sha256": "25914a164f0afd03d1c8561a6f274f3c9fc5a9528eefff40064355681e9cc145"
+  },
+  "addrfeat_42111": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42111_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42111_addrfeat.zip",
+    "bytes": 2577987,
+    "sha256": "4489fffe85c2d20a3f584f739d4fa9b09ee664fc7cfdb95a608812bbf81e1432"
+  },
+  "addrfeat_42113": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42113_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42113_addrfeat.zip",
+    "bytes": 410015,
+    "sha256": "dcc2a07ffef5942f13405270d5639dc5e564b56d76e0b63032f1afeea0fd1723"
+  },
+  "addrfeat_42115": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42115_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42115_addrfeat.zip",
+    "bytes": 1136884,
+    "sha256": "0389f3a49dad234bcbba96a54939cf6ed4a20dffba58f3d560d309f4415087ea"
+  },
+  "addrfeat_42117": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42117_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42117_addrfeat.zip",
+    "bytes": 1385035,
+    "sha256": "ac5b7921b541e647ff3a3b0e14e51f9a29659c490f03c1e2da275d9fd8573b3b"
+  },
+  "addrfeat_42119": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42119_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42119_addrfeat.zip",
+    "bytes": 663346,
+    "sha256": "ea81d76ff0be1e6c2deb6c3cc70a19311aa47b8a832133cdfa49d498195c9cc0"
+  },
+  "addrfeat_42121": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42121_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42121_addrfeat.zip",
+    "bytes": 1249515,
+    "sha256": "cabc34a45cc5a02b60f1cc9eb5c850c61e5b43b8a8e7eb24f4426e5c39e2af9d"
+  },
+  "addrfeat_42123": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42123_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42123_addrfeat.zip",
+    "bytes": 986455,
+    "sha256": "164645600193b35b8138e06e26c204d0602703d41fb41216b265f74c7e55ce6c"
+  },
+  "addrfeat_42125": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42125_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42125_addrfeat.zip",
+    "bytes": 3095460,
+    "sha256": "d7c9913f7db25604b1b67b4a92de00a7a7420c943db7aa73de1900a7b0ab1edc"
+  },
+  "addrfeat_42127": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42127_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42127_addrfeat.zip",
+    "bytes": 1567184,
+    "sha256": "41f2c367871e5388a13ac5c0d7e41ef1033091637182ce4f35d142e6c55cf0f6"
+  },
+  "addrfeat_42129": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42129_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42129_addrfeat.zip",
+    "bytes": 4780933,
+    "sha256": "2fd479509b1dba0eab64ac446ff5a1b0cce961c6fd9a6f77a6c9e375a6958b18"
+  },
+  "addrfeat_42131": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42131_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42131_addrfeat.zip",
+    "bytes": 534793,
+    "sha256": "394b3844dd63040e97c862547827603fea9559e401924ed0aeb74fc6db02b049"
+  },
+  "addrfeat_42133": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_42133_addrfeat.zip",
+    "file": "data/addresses/download/addrfeat/tl_2026_42133_addrfeat.zip",
+    "bytes": 3709585,
+    "sha256": "a01c94f95d4022fe9f8776fa48f2f222df0d841fe50a674deb04c01192b0e151"
+  },
+  "county_cb": {
+    "url": "https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_county_500k.zip",
+    "file": "data/addresses/download/cb_2025_us_county_500k.zip",
+    "bytes": 11758981,
+    "sha256": "aa976c00b181939755d0da757f4c7c2dc0103c3b3b4530fb2a91c2bb62fc777c"
+  },
+  "cousub_oh": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/COUSUB/tl_2026_39_cousub.zip",
+    "file": "data/r3-p/addresses-oh/download/tl_2026_39_cousub.zip",
+    "bytes": 6558787,
+    "sha256": "738844dc8889aba83d7994a8d298c4655ee5b8856bb65e264971f0b79c8137e7"
+  },
+  "cousub_pa": {
+    "url": "https://www2.census.gov/geo/tiger/TIGER2026/COUSUB/tl_2026_42_cousub.zip",
+    "file": "data/addresses/download/tl_2026_42_cousub.zip",
+    "bytes": 11297669,
+    "sha256": "e16e672a187684607883cb8d358ee4adc992bfabb93ce68637becb53fd7e878d"
+  },
+  "hu_pa": {
+    "url": "https://www2.census.gov/programs-surveys/popest/tables/2020-2025/housing/totals/CO-EST2025-HU-42.xlsx",
+    "file": "data/addresses/download/CO-EST2025-HU-42.xlsx",
+    "bytes": 16735,
+    "sha256": "468b17216c71976ba680ea2cc066d3a80d337b348937f20bda0d94ef1e90bc33"
+  },
+  "hu_states": {
+    "url": "https://www2.census.gov/programs-surveys/popest/tables/2020-2025/housing/totals/NST-EST2025-HU.xlsx",
+    "file": "data/addresses/download/NST-EST2025-HU.xlsx",
+    "bytes": 16894,
+    "sha256": "a1ff31e0dc318bb00e4ac546dbba45601adb17ab56f31893e01fc29b072f94a8"
+  }
+}

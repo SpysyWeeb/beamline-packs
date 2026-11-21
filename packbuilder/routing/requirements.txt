@@ -1,0 +1,13 @@
+# Routing pack builder (build-time only; nothing here ships to a device).
+# Python 3.12. Exact versions; install with tools/fetch_routing_env.py
+pyvalhalla==3.9.1        # MIT. Valhalla 3.9.1 C++ tools + Python bindings (same engine version as valhalla-mobile 0.6.4)
+osmium==4.3.2            # BSD-2-Clause. pyosmium, used to merge the state extracts
+shapely==2.2.0           # BSD-3-Clause. needed by valhalla_build_extract -g
+psutil==7.2.2            # BSD-3-Clause. memory measurement
+# transitive (pulled in by osmium and shapely)
+numpy==2.5.4             # BSD-3-Clause (and bundled-library notices)
+requests==2.34.2         # Apache-2.0
+urllib3==2.8.0           # MIT
+idna==3.20               # BSD-3-Clause
+certifi==2026.10.23      # MPL-2.0
+charset-normalizer==3.5.2  # MIT

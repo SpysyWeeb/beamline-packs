@@ -1,0 +1,12 @@
+{
+  "_about": "Weights and thresholds for addrlib.lookup. Data, not code, so they can be tuned without touching the logic.",
+  "version": 2,
+  "locality_score": {"zip": 4, "city": 3, "municipality": 3, "zip_of_named_place": 2, "none_given": 0},
+  "match_score": {"exact_key": 3, "highway_alternative": 2, "core_key": 1, "key_variant": 1, "fuzzy_key": 0},
+  "accuracy_score": {"point": 2, "interpolated": 1, "street": 0},
+  "source_score": {"osm": 0.3, "nad": 0.2, "tiger": 0.1},
+  "interpolation_offset_m": 10,
+  "fuzzy": {"max_distance": 2, "min_key_length_for_2_edits": 7, "only_within_locality": true},
+  "max_house_number": 99999999,
+  "max_results": 5
+}

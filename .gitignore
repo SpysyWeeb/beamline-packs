@@ -1,0 +1,15 @@
+# Everything a build writes (inputs, work files, packs, the catalog site, logs)
+data/
+# The builders' Python environments and the fetched tools
+.venv/
+tools/bin/
+tools/cache/
+__pycache__/
+*.pyc
+# Pack files never belong in git
+*.pmtiles
+*.osm.pbf
+*.tar
+*.tar.gz
+*.sqlite
+*.sqlite-journal

@@ -1,0 +1,17 @@
+# Python packages for the map track, installed into .venv/map
+#   py -3.12 -m venv .venv/map
+#   .venv/map/Scripts/python -m pip install -r packbuilder/map/requirements.txt
+# All are build/test-time only; nothing here ships to a device.
+pmtiles==3.8.1            # BSD-3-Clause  - read/write PMTiles archives (merge, stats)
+psutil==7.2.2             # BSD-3-Clause  - peak memory of the build process tree
+playwright==1.64.1        # Apache-2.0    - drives the installed Edge headless for screenshots
+# transitive dependencies of playwright, pinned
+greenlet==3.5.6           # MIT
+pyee==14.0.0              # MIT
+typing_extensions==4.16.0 # PSF-2.0
+# second round (2026-11-15): state outlines, lane checks, overview pack
+shapely==2.2.0            # BSD-3-Clause  - clip outlines, polygon areas, seam checks
+numpy==2.5.5              # BSD-3-Clause (bundles 0BSD/MIT/Zlib/CC0 parts) - dependency of shapely
+pyshp==3.1.8              # MIT           - reads the Census TIGER/Line shapefiles
+osmium==4.3.2             # BSD-2-Clause  - pyosmium: reads the OSM extract for the lane checks
+pillow==12.0.0            # MIT-CMU       - pixel comparison of screenshots (MLT vs MVT)

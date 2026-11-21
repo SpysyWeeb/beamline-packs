@@ -1,0 +1,53 @@
+{
+  "_comment": "Settings of the weekly build (build/weekly.py). 'states' is the one list to change: add \"oh\" to build and publish Ohio too (its routing then joins Pennsylvania's in one graph, as the app needs for two states on one phone).",
+  "states": ["pa"],
+  "state_info": {
+    "pa": {"name": "Pennsylvania", "geofabrik": "pennsylvania",
+           "addresses_steps": ["download", "nad", "extra", "osm", "tiger", "build"],
+           "search_cases": ["cases.json", "cases_holdout.json", "cases_review.json"]},
+    "oh": {"name": "Ohio", "geofabrik": "ohio",
+           "_addresses_note": "no NAD step: the hosted NAD service needs about 9 hours for Ohio (more than one job may run); OSM points and TIGER ranges only, as in round 3",
+           "addresses_steps": ["download", "extra", "osm", "tiger", "build"],
+           "search_cases": []}
+  },
+  "geofabrik_base": "https://download.geofabrik.de/north-america/us",
+  "threads": 2,
+  "java_heap": "3g",
+  "keep_builds": 2,
+  "shrink_check": {
+    "_comment": "A new build fails when its pack is much smaller than the published one of the same state (a broken input). Ratios of this week's bytes to last week's.",
+    "min_total_ratio": 0.95,
+    "min_part_ratio": 0.90
+  },
+  "search_check": {
+    "_comment": "packbuilder/search/tests/run_tests.py on the pack's own search and address files. top5 = share of cases with the expected result in the first five; 'excl_gaps' leaves out the cases the data cannot answer.",
+    "cases.json": {"min_top5": 0.94, "min_top5_excl_gaps": 0.96},
+    "cases_holdout.json": {"min_top5": 0.93, "min_top5_excl_gaps": 0.95},
+    "cases_review.json": {"min_top5": 0.95, "min_top5_excl_gaps": 0.96}
+  },
+  "route_check": {
+    "_comment": "build/check_routes.py: each trip must route on the pack's own routing part, with its length within the tolerance of the reference and both ends within max_end_gap_m of a road.",
+    "file": "build/route_checks.json",
+    "tolerance": 0.25,
+    "max_end_gap_m": 500
+  },
+  "inputs": {
+    "_comment": "The slower-changing inputs, kept between weekly runs in the release tagged 'inputs' (see README). policy: pinned = fetched once (the builders pin them by version or SHA-256) and reused; upstream = fetched again when the publisher has a newer file and the kept copy is at least min_age_days old; max_age = fetched again when the kept copy is older than max_age_days (the kept copy is used if that fails). A 'dir' item travels as one tar.",
+    "items": [
+      {"name": "natural_earth_vector.gpkg.zip", "path": "data/map/work/data/sources/natural_earth_vector.gpkg.zip", "kind": "file", "policy": "upstream", "min_age_days": 28, "fetch": "map-source"},
+      {"name": "water-polygons-split-3857.zip", "path": "data/map/work/data/sources/water-polygons-split-3857.zip", "kind": "file", "policy": "upstream", "min_age_days": 28, "fetch": "map-source"},
+      {"name": "land-polygons-split-3857.zip", "path": "data/map/work/data/sources/land-polygons-split-3857.zip", "kind": "file", "policy": "upstream", "min_age_days": 28, "fetch": "map-source"},
+      {"name": "qrank.csv.gz", "path": "data/map/work/data/sources/qrank.csv.gz", "kind": "file", "policy": "upstream", "min_age_days": 28, "fetch": "map-source"},
+      {"name": "pgf-encoding.zip", "path": "data/map/work/data/sources/pgf-encoding.zip", "kind": "file", "policy": "upstream", "min_age_days": 28, "fetch": "map-source"},
+      {"name": "map-sources-manifest.json", "path": "data/map/work/data/sources/manifest.json", "kind": "file", "policy": "companion"},
+      {"name": "map-census.tar", "path": "data/map/work/data/census", "kind": "dir", "policy": "pinned"},
+      {"name": "routing-timezones.zip", "path": "data/routing/downloads/2026d-timezones-with-oceans-1970.shapefile.zip", "kind": "file", "policy": "pinned"},
+      {"name": "addresses-{state}-download.tar", "path": "data/addresses-{state}", "kind": "dir", "policy": "pinned", "per_state": true,
+       "include": ["download/*.zip", "download/*.xlsx", "download/addrfeat/*", "metrics/download.json"]},
+      {"name": "addresses-{state}-nad.tar.gz", "path": "data/addresses-{state}", "kind": "dir", "policy": "pinned", "per_state": true, "compress": true, "only_if_step": "nad",
+       "include": ["work/nad_{state}.sqlite", "metrics/nad.json", "reports/nad_{state}_county_counts.json"]},
+      {"name": "addresses-{state}-extra.tar", "path": "data/addresses-{state}", "kind": "dir", "policy": "max_age", "max_age_days": 28, "per_state": true, "only_if_step": "extra",
+       "include": ["work/extra_{state}.sqlite", "metrics/extra.json"]}
+    ]
+  }
+}

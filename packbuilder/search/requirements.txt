@@ -1,0 +1,13 @@
+# Build-time only (PC). The query engine (query.py, cli.py, tests/) needs no packages: stdlib + sqlite3.
+# Install: python -m venv .venv/search && .venv/search/Scripts/python -m pip install -r packbuilder/search/requirements.txt
+# Licences checked in each wheel's METADATA / bundled licence files (2026-11-15).
+osmium==4.3.2               # pyosmium, BSD-2-Clause; compiled with libosmium (BSL-1.0) - reads the OSM PBF
+shapely==2.2.0              # BSD-3-Clause; the wheel bundles GEOS (LGPL-2.1) - build time only, never shipped
+numpy==2.5.4                # BSD-3-Clause (+0BSD, MIT, Zlib, CC0 parts) - dependency of shapely
+psutil==7.2.2               # BSD-3-Clause - peak memory in the build stats
+# pulled in by osmium (its replication helpers); pinned for reproducibility
+requests==2.34.2            # Apache-2.0
+urllib3==2.8.0              # MIT
+idna==3.20                  # BSD-3-Clause
+certifi==2026.10.23         # MPL-2.0
+charset-normalizer==3.5.2   # MIT

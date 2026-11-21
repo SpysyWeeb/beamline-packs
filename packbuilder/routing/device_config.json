@@ -1,0 +1,25 @@
+{
+  "format": "beamline-routing-device-config/1",
+  "valhalla_version": "3.9.1",
+  "note": "Engine settings for the device (phone, comma 3X). packs.py writes data/routing/device/valhalla.json from the build config plus these settings and the presets' requires_config. Keys are dotted paths into Valhalla's config (names checked against valhalla 3.9.1: valhalla/scripts/valhalla_build_config, src/thor/costmatrix.cc, src/loki/worker.cc). Paths in the written file are relative to the device folder; packs.engine_config() resolves them, and the app must do the same with its own files folder.",
+  "set": {
+    "service_limits.auto.max_matrix_distance": 1000000.0,
+    "thor.source_to_target_algorithm": "costmatrix",
+    "thor.costmatrix.allow_second_pass": true,
+    "mjolnir.concurrency": 1,
+    "mjolnir.traffic_extract": "",
+    "mjolnir.admin": "",
+    "mjolnir.timezone": "",
+    "mjolnir.landmarks": "",
+    "mjolnir.transit_dir": "",
+    "mjolnir.transit_feeds_dir": "",
+    "additional_data.elevation": "",
+    "logging.type": ""
+  },
+  "why": {
+    "service_limits.auto.max_matrix_distance": "CostMatrix stops each search tree at max_matrix_distance / 2 of path distance (costmatrix.cc); the default 400 km gave null cells on a 479 km trip. 1,000 km covers a state-to-state trip.",
+    "thor.costmatrix.allow_second_pass": "the second pass (destination-only roads opened, hierarchy relaxed) removed the last 1-2 null cells",
+    "mjolnir.admin": "admin and timezone data are baked into the tiles; the databases are builder-only",
+    "mjolnir.concurrency": "the device engine is single-threaded"
+  }
+}

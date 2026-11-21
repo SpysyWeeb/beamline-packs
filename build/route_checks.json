@@ -1,0 +1,255 @@
+{
+ "_comment": "Test routes of the weekly check (build/check_routes.py): public landmarks from packbuilder/routing/trips.json and the PA side of state-line crossings; ref_km = the length measured on the round-3 Pennsylvania pack (OSM 2026-11-14).",
+ "states": {
+  "pa": [
+   {
+    "id": "U1",
+    "what": "Market Square, Pittsburgh PA to Carnegie Museum, Oakland, Pittsburgh PA",
+    "from": {
+     "lat": 40.4406,
+     "lon": -80.0026
+    },
+    "to": {
+     "lat": 40.4433,
+     "lon": -79.9497
+    },
+    "ref_km": 5.41
+   },
+   {
+    "id": "U2",
+    "what": "City Hall, Philadelphia PA to 30th Street Station, Philadelphia PA",
+    "from": {
+     "lat": 39.9526,
+     "lon": -75.1635
+    },
+    "to": {
+     "lat": 39.9557,
+     "lon": -75.1822
+    },
+    "ref_km": 2.123
+   },
+   {
+    "id": "U3",
+    "what": "Perry Square, Erie PA to Presque Isle State Park entrance, Erie PA",
+    "from": {
+     "lat": 42.127,
+     "lon": -80.0852
+    },
+    "to": {
+     "lat": 42.11,
+     "lon": -80.154
+    },
+    "ref_km": 7.855
+   },
+   {
+    "id": "U5",
+    "what": "Beaver Stadium, State College PA to College Ave & Allen St, State College PA",
+    "from": {
+     "lat": 40.8122,
+     "lon": -77.8562
+    },
+    "to": {
+     "lat": 40.7945,
+     "lon": -77.86
+    },
+    "ref_km": 3.768
+   },
+   {
+    "id": "R1",
+    "what": "State Capitol, Harrisburg PA to Hersheypark, Hershey PA",
+    "from": {
+     "lat": 40.2646,
+     "lon": -76.8835
+    },
+    "to": {
+     "lat": 40.2888,
+     "lon": -76.6545
+    },
+    "ref_km": 23.135
+   },
+   {
+    "id": "R2",
+    "what": "Penn Square, Lancaster PA to Lincoln Square, Gettysburg PA",
+    "from": {
+     "lat": 40.038,
+     "lon": -76.3055
+    },
+    "to": {
+     "lat": 39.8309,
+     "lon": -77.2311
+    },
+    "ref_km": 88.915
+   },
+   {
+    "id": "I1",
+    "what": "Perry Square, Erie PA to State Capitol, Harrisburg PA",
+    "from": {
+     "lat": 42.127,
+     "lon": -80.0852
+    },
+    "to": {
+     "lat": 40.2646,
+     "lon": -76.8835
+    },
+    "ref_km": 478.506
+   },
+   {
+    "id": "I2",
+    "what": "Courthouse Square, Scranton PA to Market Square, Pittsburgh PA",
+    "from": {
+     "lat": 41.4087,
+     "lon": -75.6627
+    },
+    "to": {
+     "lat": 40.4406,
+     "lon": -80.0026
+    },
+    "ref_km": 455.018
+   },
+   {
+    "id": "I4",
+    "what": "Center Square, Allentown PA to Downtown Williamsport PA",
+    "from": {
+     "lat": 40.6023,
+     "lon": -75.4714
+    },
+    "to": {
+     "lat": 41.2412,
+     "lon": -77.0011
+    },
+    "ref_km": 186.253
+   },
+   {
+    "id": "T1",
+    "what": "City Hall, Philadelphia PA to Market Square, Pittsburgh PA",
+    "from": {
+     "lat": 39.9526,
+     "lon": -75.1635
+    },
+    "to": {
+     "lat": 40.4406,
+     "lon": -80.0026
+    },
+    "ref_km": 491.193
+   },
+   {
+    "id": "T2",
+    "what": "The Square, Carlisle PA to King of Prussia Mall PA",
+    "from": {
+     "lat": 40.201,
+     "lon": -77.1886
+    },
+    "to": {
+     "lat": 40.0884,
+     "lon": -75.3926
+    },
+    "ref_km": 171.721
+   },
+   {
+    "id": "X1",
+    "what": "Main St, Wellsboro PA to Courthouse, Coudersport PA",
+    "from": {
+     "lat": 41.7487,
+     "lon": -77.3008
+    },
+    "to": {
+     "lat": 41.7748,
+     "lon": -78.0207
+    },
+    "ref_km": 72.519
+   },
+   {
+    "id": "X2",
+    "what": "Kinzua Bridge State Park PA to Ridgway PA",
+    "from": {
+     "lat": 41.7594,
+     "lon": -78.588
+    },
+    "to": {
+     "lat": 41.4207,
+     "lon": -78.7286
+    },
+    "ref_km": 51.992
+   },
+   {
+    "id": "X3",
+    "what": "Intercourse PA to Strasburg PA",
+    "from": {
+     "lat": 40.0377,
+     "lon": -76.105
+    },
+    "to": {
+     "lat": 39.9832,
+     "lon": -76.1843
+    },
+    "ref_km": 15.161
+   },
+   {
+    "id": "E1",
+    "what": "Perry Square, Erie PA to I-90 at the Ohio line (PA side)",
+    "from": {
+     "lat": 42.127,
+     "lon": -80.0852
+    },
+    "to": {
+     "lat": 41.943116,
+     "lon": -80.489605
+    },
+    "ref_km": null,
+    "note": "no length reference: the end on I-90 is reached in either direction (62 km through an Ohio interchange when the routing holds Ohio roads, 47 km with Pennsylvania alone); the trip must still plan"
+   },
+   {
+    "id": "E2",
+    "what": "Perry Square, Erie PA to US-20 at the Ohio line (PA side)",
+    "from": {
+     "lat": 42.127,
+     "lon": -80.0852
+    },
+    "to": {
+     "lat": 41.94909,
+     "lon": -80.490098
+    },
+    "ref_km": 47.767
+   },
+   {
+    "id": "E3",
+    "what": "Perry Square, Erie PA to Gulf Road by I-90 near the New York line (PA side)",
+    "from": {
+     "lat": 42.127,
+     "lon": -80.0852
+    },
+    "to": {
+     "lat": 42.2283,
+     "lon": -79.7716
+    },
+    "ref_km": 33.424
+   },
+   {
+    "id": "E4",
+    "what": "Perry Square, Erie PA to Gay Road by PA 5 near the New York line (PA side)",
+    "from": {
+     "lat": 42.127,
+     "lon": -80.0852
+    },
+    "to": {
+     "lat": 42.2601,
+     "lon": -79.7736
+    },
+    "ref_km": 31.553
+   },
+   {
+    "id": "S1",
+    "what": "State St, Sharon PA to I-80 at the Ohio line (PA side)",
+    "from": {
+     "lat": 41.233,
+     "lon": -80.4932
+    },
+    "to": {
+     "lat": 41.180677,
+     "lon": -80.492403
+    },
+    "ref_km": 7.654
+   }
+  ]
+ }
+}

@@ -1,0 +1,48 @@
+{
+  "protomaps_basemaps": {
+    "repo": "https://github.com/protomaps/basemaps",
+    "commit": "42ffaaa4a85a41bfcb23e43cc0f5b492a5eca123",
+    "tiles_version": "4.15.2",
+    "planetiler_version": "0.10.2",
+    "licence": "BSD-3-Clause (code); schema adapted from Tilezen (MIT)"
+  },
+  "beamline_profile_patch": {
+    "version": "2",
+    "file": "packbuilder/map/profile/beamline-profile.patch",
+    "applies_to": "protomaps_basemaps commit above",
+    "licence": "BSD-3-Clause, like the profile it changes (written for this project)",
+    "what": "lane tags on motorway/trunk/primary(+links), including the :both_ways centre-lane forms; roads with direction-dependent lane tags are not line-merged, so they keep the OSM way's direction; optional clamp of z15-only POIs, house numbers and private roads into the max zoom; POI kinds to leave out; optional unmerged buildings at the max zoom",
+    "history": "1 (2026-11-15, first round of this track): six lane keys, merged lines could reverse a two-way road's lanes:forward/backward and turn:lanes order. 2 (2026-11-15, review fixes): + lanes:both_ways, turn:lanes:both_ways; direction-dependent lane lines left out of the line merge."
+  },
+  "planetiler": {
+    "version": "0.10.2",
+    "url": "https://github.com/onthegomap/planetiler/releases/download/v0.10.2/planetiler.jar",
+    "sha256": "f310bd0413e2e4512b27f4046d418664e8e1d3bf31603c2a70e23de06c167e4d",
+    "licence": "Apache-2.0",
+    "use": "generate-custom (YAML schema) for the US overview pack; build time only"
+  },
+  "protomaps_styles_npm": {
+    "package": "@protomaps/basemaps",
+    "version": "5.7.2",
+    "tarball": "https://registry.npmjs.org/@protomaps/basemaps/-/basemaps-5.7.2.tgz",
+    "sha256": "2d5d41b29cdd2364f7092ad439bd9d170b4f38cbec8858cefbe84d0f98125ce6",
+    "licence": "BSD-3-Clause (code); visual design CC0-1.0"
+  },
+  "basemaps_assets": {
+    "repo": "https://github.com/protomaps/basemaps-assets",
+    "commit": "028c18f713baecad011301ff7a69acc39bcc2ae7",
+    "licence": "fonts/: SIL OFL 1.1 (Noto Sans); sprites/: derived from tangrams/icons (MIT)"
+  },
+  "maven": {
+    "version": "3.9.16",
+    "licence": "Apache-2.0"
+  },
+  "go_pmtiles": {
+    "version": "1.31.2",
+    "licence": "BSD-3-Clause"
+  },
+  "java": {
+    "version": "Temurin 25.0.3 (preinstalled)",
+    "licence": "GPL-2.0 with Classpath Exception (build time only)"
+  }
+}

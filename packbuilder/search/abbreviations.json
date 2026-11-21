@@ -1,0 +1,68 @@
+{
+  "_doc": "Abbreviation and stopword tables used by normalize.py to build search keys. The same rules run at build time (names from OSM) and at query time (what the user typed), so both sides meet on one canonical form. 'suffix' words expand only in the last position of a name (or just before a trailing directional), 'prefix' words only in the first position of a multi-word name, 'directional' words only in the first or last position of a multi-word name, 'anywhere' words in any position. Hand-written for this project from common US street-name usage (USPS Publication 28 style suffixes, written from general knowledge, not copied).",
+  "suffix": {
+    "st": "street", "str": "street",
+    "rd": "road",
+    "av": "avenue",
+    "dr": "drive",
+    "ln": "lane",
+    "ct": "court",
+    "pl": "place",
+    "pky": "parkway",
+    "ter": "terrace", "terr": "terrace",
+    "cir": "circle",
+    "trl": "trail",
+    "aly": "alley",
+    "sq": "square",
+    "xing": "crossing",
+    "tpk": "turnpike",
+    "fwy": "freeway",
+    "hts": "heights",
+    "ext": "extension",
+    "rte": "route", "rt": "route",
+    "plz": "plaza",
+    "ctr": "center",
+    "mtn": "mountain"
+  },
+  "prefix": {
+    "st": "saint",
+    "ste": "sainte",
+    "mt": "mount",
+    "ft": "fort",
+    "pt": "point",
+    "pa": "pennsylvania"
+  },
+  "_doc_prefix_pa": "'pa' as the first word of a multi-word name means Pennsylvania ('PA Turnpike', 'PA Liquor Control Board'); before a number it is a route prefix instead ('PA 8', route_prefix wins).",
+  "directional": {
+    "n": "north", "s": "south", "e": "east", "w": "west",
+    "ne": "northeast", "nw": "northwest", "se": "southeast", "sw": "southwest"
+  },
+  "anywhere": {
+    "ave": "avenue", "blvd": "boulevard", "pkwy": "parkway", "hwy": "highway", "expy": "expressway", "tpke": "turnpike",
+    "twp": "township", "twnshp": "township",
+    "boro": "borough", "bor": "borough",
+    "co": "county", "cnty": "county",
+    "univ": "university",
+    "hosp": "hospital",
+    "intl": "international",
+    "natl": "national",
+    "hs": "high school",
+    "elem": "elementary",
+    "mem": "memorial",
+    "apts": "apartments"
+  },
+  "route_prefix": {"i": "interstate", "us": "us", "sr": "state route", "pa": "pa", "rt": "route", "rte": "route", "cr": "county road", "t": "township road"},
+  "_doc_route_prefix": "Expanded only when the next word is a number: 'I-79' / 'I 79' -> 'interstate 79'.",
+  "stopwords": ["the", "and", "of"],
+  "_doc_state_names": "Query side only: a trailing state word ('erie pa', 'pittsburgh, pa', 'philadelphia pennsylvania', 'erie pa 16501') is dropped unless the whole phrase is itself a known name or brand ('university of pennsylvania'). 'penn' is not in the list ('william penn').",
+  "state_names": ["pa", "penna", "pennsylvania"],
+  "_doc_street_types": "Query side only: when a query starts with a number, it is read as a house number if the rest ends in one of these words (after abbreviation expansion) or is not a known brand, category or name ('84 lumber', '7 eleven' stay names).",
+  "street_types": ["street", "road", "avenue", "drive", "lane", "court", "place", "parkway", "terrace", "circle", "trail", "alley", "square", "crossing", "turnpike", "freeway", "heights", "extension", "route", "plaza", "boulevard", "highway", "expressway", "pike", "way", "run", "hollow", "row", "walk", "loop", "ridge"],
+  "_doc_connectors": "Words that link parts of a query. 'near' style words take a place or 'me'; 'in' takes a place that bounds the search; 'on' takes a street.",
+  "connectors": {
+    "near": ["near", "nearby", "around", "close to", "by"],
+    "in": ["in", "inside"],
+    "on": ["on", "along", "at"]
+  },
+  "near_me": ["near me", "nearby", "close by", "around me", "closest", "nearest", "near here"]
+}

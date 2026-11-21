@@ -1,0 +1,97 @@
+# The weekly build of the state packs (README, "How the weekly build works").
+# Mondays 09:17 UTC = 4:17 AM US Eastern Standard Time (5:17 AM in summer time); GitHub's cron is UTC
+# only, and a minute past the hour avoids the top-of-the-hour queue. Plus the "Run workflow" button.
+name: Weekly packs
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the packs when every check passes (off: build and check only)"
+        type: boolean
+        default: true
+      allow_smaller:
+        description: "Allow a pack much smaller than the published one (a deliberate change)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # releases only; the workflow's own GITHUB_TOKEN, no other secret
+
+concurrency:
+  group: weekly-packs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Repository variable PACKS_RUNNER: unset or "github" = GitHub's ubuntu-24.04 runner (2 cores and
+    # 7 GB in a private repository); "self-hosted" = a self-hosted Linux runner labelled beamline-packs.
+    runs-on: ${{ vars.PACKS_RUNNER == 'self-hosted' && fromJSON('["self-hosted", "linux", "x64", "beamline-packs"]') || 'ubuntu-24.04' }}
+    timeout-minutes: 345
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Privacy scan (required)
+        run: python3 build/privacy_scan.py
+
+      - name: Free disk space (GitHub's runner)
+        if: runner.environment == 'github-hosted'
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache \
+            /usr/local/share/boost /usr/local/share/powershell /usr/share/swift /usr/local/julia* || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
+
+      - name: Swap as insurance (GitHub's runner)
+        # The largest steps peak near 4.75 GiB (house numbers) and 4.6 GiB (map) resident, measured in a
+        # 6.5 GiB, 2-CPU limit; 4 GB of swap keeps a larger week from being killed on the 7 GB runner.
+        if: runner.environment == 'github-hosted'
+        run: |
+          if [ "$(swapon --show --noheadings | wc -l)" = "0" ]; then
+            sudo fallocate -l 4G /swapfile-packs && sudo chmod 600 /swapfile-packs && sudo mkswap /swapfile-packs >/dev/null && sudo swapon /swapfile-packs
+          fi
+          free -h
+
+      - name: System packages (GitHub's runner; a self-hosted runner has them already)
+        if: runner.environment == 'github-hosted'
+        run: sudo sh build/setup_ubuntu.sh
+
+      - name: Cache of downloaded wheels and tools
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/pip
+            tools/cache
+            data/map/bin
+          key: tools-${{ hashFiles('packbuilder/*/requirements.txt', 'tools/fetch_*.py', 'packbuilder/map/versions.json', 'packbuilder/map/profile/*.patch') }}
+
+      - name: Set up the builders
+        run: python3 build/weekly.py setup
+
+      - name: Build and check
+        run: python3 build/weekly.py run --store-release inputs ${{ inputs.allow_smaller && '--allow-smaller' || '' }}
+
+      - name: Publish
+        if: github.event_name == 'schedule' || inputs.publish
+        run: python3 build/weekly.py publish --github --store-release inputs
+
+      - name: Remove unpublished drafts
+        if: failure()
+        run: python3 build/weekly.py cleanup-drafts
+
+      - name: Keep the logs of a failed run
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: logs
+          path: |
+            data/out/logs
+            data/out/run.json
+          retention-days: 7

@@ -1,0 +1,317 @@
+diff --git a/tiles/src/main/java/com/protomaps/basemap/Basemap.java b/tiles/src/main/java/com/protomaps/basemap/Basemap.java
+index 470bc3a..c6c19f1 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/Basemap.java
++++ b/tiles/src/main/java/com/protomaps/basemap/Basemap.java
+@@ -162,6 +162,7 @@ public class Basemap extends ForwardingProfile {
+       result.put("pgf:" + script.toLowerCase() + ":version", fontRegistry.getVersion(script));
+     }
+ 
++    result.putAll(BeamlineOptions.metadata());
+     return result;
+   }
+ 
+@@ -288,6 +289,9 @@ public class Basemap extends ForwardingProfile {
+       .addGeoPackageSource("ne", sourcesDir.resolve("natural_earth_vector.gpkg.zip"),
+         "https://naciscdn.org/naturalearth/packages/natural_earth_vector.gpkg.zip");
+ 
++    // beamline: lane tags, max-zoom clamp, POI kinds to leave out (all off by default)
++    BeamlineOptions.configure(args, planetiler.config().maxzoom());
++
+     if (!overtureFile.isEmpty()) {
+       Path base = args.inputFile("overture", "overture base directory", Path.of("data", "overture"));
+       var hivePartitoning = false;
+diff --git a/tiles/src/main/java/com/protomaps/basemap/BeamlineOptions.java b/tiles/src/main/java/com/protomaps/basemap/BeamlineOptions.java
+new file mode 100644
+index 0000000..5733dfd
+--- /dev/null
++++ b/tiles/src/main/java/com/protomaps/basemap/BeamlineOptions.java
+@@ -0,0 +1,106 @@
++package com.protomaps.basemap;
++
++import com.onthegomap.planetiler.config.Arguments;
++import java.util.Arrays;
++import java.util.LinkedHashMap;
++import java.util.Map;
++import java.util.Set;
++import java.util.regex.Pattern;
++import java.util.stream.Collectors;
++
++/**
++ * Beamline extensions to the Protomaps basemap profile (https://github.com/protomaps/basemaps).
++ *
++ * <p>All options default to the stock profile's behaviour, so a build without the --beamline_* arguments writes the
++ * same tiles as the unpatched profile. The values come from the Beamline pack builder
++ * (packbuilder/map/build_config.json), passed as Planetiler arguments:
++ *
++ * <ul>
++ * <li>--beamline_lanes_minzoom=N: from zoom N, roads with highway=motorway, trunk, primary and their links carry the
++ * OSM lane tags lanes, lanes:forward, lanes:backward, lanes:both_ways (as integers) and turn:lanes,
++ * turn:lanes:forward, turn:lanes:backward, turn:lanes:both_ways (as strings). Lines carrying a tag whose meaning
++ * depends on the line's direction are not merged, so they keep the OSM way's direction. -1 (default) = off.</li>
++ * <li>--beamline_top_zoom_clamp=true: POIs, house numbers and private roads that the stock profile only places in z15
++ * tiles are placed in the build's maximum zoom instead, so a z14 build keeps them. Default false.</li>
++ * <li>--beamline_poi_drop_kinds=a,b,c: POI kinds (the "kind" attribute) that are not written at all.</li>
++ * <li>--beamline_buildings_detail_at_top=true: at the maximum zoom, buildings are kept like at z15 (no merging of
++ * nearby buildings, no minimum area), even when the maximum zoom is below 15. Default false.</li>
++ * </ul>
++ */
++public final class BeamlineOptions {
++
++  private BeamlineOptions() {}
++
++  /** Version of these extensions; written to the archive metadata. */
++  public static final String VERSION = "2";
++
++  /** Lane attributes whose meaning depends on the line's direction (forward/backward, lanes left to right). */
++  public static final Set<String> DIRECTIONAL_LANE_KEYS = Set.of("lanes:forward", "lanes:backward", "turn:lanes",
++    "turn:lanes:forward", "turn:lanes:backward");
++
++  /** True when a feature carries a lane attribute that a reversed line would make wrong. */
++  public static boolean hasDirectionalLaneTags(Map<String, Object> tags) {
++    for (String key : DIRECTIONAL_LANE_KEYS) {
++      if (tags.containsKey(key)) {
++        return true;
++      }
++    }
++    return false;
++  }
++
++  /** The zoom that holds what the stock profile puts in z15: 15, or the build's maxzoom when clamping. */
++  public static volatile int topZoom = 15;
++  public static volatile int lanesMinZoom = -1;
++  public static volatile Set<String> dropPoiKinds = Set.of();
++  public static volatile boolean buildingsDetailAtTop = false;
++
++  public static void configure(Arguments args, int maxzoom) {
++    lanesMinZoom = args.getInteger("beamline_lanes_minzoom",
++      "beamline: lane tags on motorway/trunk/primary (+links) from this zoom, -1 = off", -1);
++    boolean clamp = args.getBoolean("beamline_top_zoom_clamp",
++      "beamline: put the stock profile's z15-only features into the max zoom", false);
++    topZoom = clamp ? Math.min(15, maxzoom) : 15;
++    String drop = args.getString("beamline_poi_drop_kinds", "beamline: comma-separated POI kinds to leave out", "");
++    dropPoiKinds = Arrays.stream(drop.split(",")).map(String::trim).filter(s -> !s.isEmpty())
++      .collect(Collectors.toUnmodifiableSet());
++    buildingsDetailAtTop = args.getBoolean("beamline_buildings_detail_at_top",
++      "beamline: keep buildings unmerged at the max zoom", false);
++    if (lanesMinZoom > maxzoom) {
++      throw new IllegalArgumentException("beamline_lanes_minzoom " + lanesMinZoom + " > maxzoom " + maxzoom);
++    }
++  }
++
++  public static Map<String, String> metadata() {
++    Map<String, String> m = new LinkedHashMap<>();
++    m.put("beamline:profile_extensions", VERSION);
++    m.put("beamline:lanes_minzoom", Integer.toString(lanesMinZoom));
++    m.put("beamline:top_zoom", Integer.toString(topZoom));
++    m.put("beamline:poi_drop_kinds", String.join(",", dropPoiKinds.stream().sorted().toList()));
++    m.put("beamline:buildings_detail_at_top", Boolean.toString(buildingsDetailAtTop));
++    return m;
++  }
++
++  private static final Pattern LANE_COUNT = Pattern.compile("^\\s*([0-9]{1,2})\\s*$");
++
++  /** A lane count as an Integer (1..30), or null for anything else ("2;3", "1.5", "", null). */
++  public static Integer laneCount(String value) {
++    if (value == null) {
++      return null;
++    }
++    var m = LANE_COUNT.matcher(value);
++    if (!m.matches()) {
++      return null;
++    }
++    int n = Integer.parseInt(m.group(1));
++    return n >= 1 && n <= 30 ? n : null;
++  }
++
++  /** A turn-lane string with surrounding whitespace removed, or null when empty. */
++  public static String turnLanes(String value) {
++    if (value == null) {
++      return null;
++    }
++    String v = value.trim();
++    return v.isEmpty() ? null : v;
++  }
++}
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java b/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java
+index fc5a0e0..f906ae1 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Buildings.java
+@@ -9,6 +9,7 @@ import com.onthegomap.planetiler.VectorTile;
+ import com.onthegomap.planetiler.geo.GeometryException;
+ import com.onthegomap.planetiler.reader.SourceFeature;
+ import com.onthegomap.planetiler.util.Parse;
++import com.protomaps.basemap.BeamlineOptions;
+ import com.protomaps.basemap.feature.FeatureId;
+ import com.protomaps.basemap.postprocess.Area;
+ import java.util.ArrayList;
+@@ -132,7 +133,8 @@ public class Buildings implements ForwardingProfile.LayerPostProcessor {
+           .setAttr("addr_housenumber", sf.getString("addr:housenumber"))
+           .setAttr("addr_street", sf.getString("addr:street"))
+           .setAttr("kind", "address")
+-          .setMinZoom(15);
++          // beamline: house numbers go into the max zoom when it is below 15
++          .setMinZoom(BeamlineOptions.topZoom);
+       }
+     }
+   }
+@@ -162,7 +164,9 @@ public class Buildings implements ForwardingProfile.LayerPostProcessor {
+ 
+   @Override
+   public List<VectorTile.Feature> postProcess(int zoom, List<VectorTile.Feature> items) throws GeometryException {
+-    if (zoom == 15) {
++    // beamline: the top zoom (15, or the max zoom of a clamped build) deduplicates addresses like z15
++    boolean top = zoom == BeamlineOptions.topZoom;
++    if (zoom == 15 || top) {
+       List<VectorTile.Feature> buildings = new ArrayList<>();
+ 
+       // deduplicate addresses
+@@ -181,7 +185,10 @@ public class Buildings implements ForwardingProfile.LayerPostProcessor {
+         buildings.add(feature);
+       }
+ 
+-      return buildings;
++      if (zoom == 15 || BeamlineOptions.buildingsDetailAtTop) {
++        return buildings;
++      }
++      items = buildings;
+     }
+     items = Area.filterArea(items, 0);
+ 
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java b/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java
+index 21a420e..fd065c6 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Pois.java
+@@ -19,6 +19,7 @@ import com.onthegomap.planetiler.expression.MultiExpression;
+ import com.onthegomap.planetiler.geo.GeoUtils;
+ import com.onthegomap.planetiler.geo.GeometryException;
+ import com.onthegomap.planetiler.reader.SourceFeature;
++import com.protomaps.basemap.BeamlineOptions;
+ import com.protomaps.basemap.feature.FeatureId;
+ import com.protomaps.basemap.feature.Matcher;
+ import com.protomaps.basemap.feature.QrankDb;
+@@ -468,6 +469,10 @@ public class Pois implements ForwardingProfile.LayerPostProcessor {
+     if (kind.equals("pm:undefined"))
+       return;
+ 
++    // beamline: POI kinds a driving map does not draw (trees, benches, crossings ...)
++    if (BeamlineOptions.dropPoiKinds.contains(kind))
++      return;
++
+     // QRank may override minZoom entirely
+     String wikidata = sf.getString("wikidata");
+     long qrank = (wikidata != null) ? qrankDb.get(wikidata) : 0;
+@@ -544,7 +549,7 @@ public class Pois implements ForwardingProfile.LayerPostProcessor {
+       .setAttr("min_zoom", minZoom + 1)
+       //
+       .setBufferPixels(8)
+-      .setZoomRange(Math.min(minZoom, 15), 15)
++      .setZoomRange(Math.min(minZoom, BeamlineOptions.topZoom), BeamlineOptions.topZoom)
+       // Core OSM tags for different kinds of places
+       // Special airport only tag (to indicate if it's an airport with regular commercial flights)
+       .setAttr("iata", sf.getString("iata"))
+@@ -562,7 +567,8 @@ public class Pois implements ForwardingProfile.LayerPostProcessor {
+ 
+     // Even with the categorical zoom bucketing above, we end up with too dense a point feature spread in downtown
+     // areas, so cull the labels which wouldn't label at earlier zooms than the max_zoom of 15
+-    outputFeature.setPointLabelGridSizeAndLimit(14, 8, 1);
++    // beamline: no label grid at the top zoom, which holds every POI when the max zoom is below 15
++    outputFeature.setPointLabelGridSizeAndLimit(Math.min(14, BeamlineOptions.topZoom - 1), 8, 1);
+   }
+ 
+   public void processOverture(SourceFeature sf, FeatureCollector features) {
+@@ -627,7 +633,7 @@ public class Pois implements ForwardingProfile.LayerPostProcessor {
+       .setAttr("min_zoom", minZoom + 1)
+       //
+       .setBufferPixels(8)
+-      .setZoomRange(Math.min(minZoom, 15), 15)
++      .setZoomRange(Math.min(minZoom, BeamlineOptions.topZoom), BeamlineOptions.topZoom)
+       .setSortKey(sortKey);
+   }
+ 
+diff --git a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+index 03be049..098aefa 100644
+--- a/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
++++ b/tiles/src/main/java/com/protomaps/basemap/layers/Roads.java
+@@ -18,6 +18,7 @@ import com.onthegomap.planetiler.geo.GeometryException;
+ import com.onthegomap.planetiler.reader.SourceFeature;
+ import com.onthegomap.planetiler.reader.osm.OsmElement;
+ import com.onthegomap.planetiler.reader.osm.OsmRelationInfo;
++import com.protomaps.basemap.BeamlineOptions;
+ import com.protomaps.basemap.feature.CountryCoder;
+ import com.protomaps.basemap.feature.FeatureId;
+ import com.protomaps.basemap.feature.Matcher;
+@@ -389,7 +390,9 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+     minZoomShieldText = getInteger(sf2, zoomMatches, "pm:minzoomShield", 99);
+     minZoomNames = getInteger(sf2, zoomMatches, "pm:minzoomName", 99);
+ 
+-    minZoom = sf.hasTag("access", "private", "no") ? Math.max(minZoom, 15) : minZoom;
++    // beamline: in a build whose max zoom is below 15, private roads go into the max zoom instead of being dropped
++    minZoom = sf.hasTag("access", "private", "no") ?
++      Math.min(Math.max(minZoom, 15), BeamlineOptions.topZoom) : minZoom;
+ 
+     var feat = features.line("roads")
+       .setId(FeatureId.create(sf))
+@@ -398,7 +401,7 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+       .setAttr("min_zoom", minZoom + 1)
+       .setAttrWithMinzoom("ref", sf.getString("ref"), minZoomShieldText)
+       .setAttrWithMinzoom("oneway", sf.getString("oneway"), 14)
+-      .setAttrWithMinzoom("access", sf.getTag("access"), 15)
++      .setAttrWithMinzoom("access", sf.getTag("access"), BeamlineOptions.topZoom)
+       // temporary attribute that gets removed in the post-process step
+       .setAttr("pm:highway", highway)
+       .setAttr("sort_rank", 400)
+@@ -444,6 +447,23 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+       feat.setAttrWithMinzoom("is_tunnel", true, 12);
+     }
+ 
++    // beamline: lane counts (integers) and turn lanes (OSM strings, lanes left to right in the way's direction)
++    // on motorway, trunk and primary roads and their links, for a later lane-level map. The :both_ways forms are
++    // the centre two-way turn lane, so lanes = forward + backward + both_ways where all are tagged.
++    if (BeamlineOptions.lanesMinZoom >= 0 &&
++      sf.hasTag("highway", "motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link")) {
++      int z = BeamlineOptions.lanesMinZoom;
++      feat.setAttrWithMinzoom("lanes", BeamlineOptions.laneCount(sf.getString("lanes")), z)
++        .setAttrWithMinzoom("lanes:forward", BeamlineOptions.laneCount(sf.getString("lanes:forward")), z)
++        .setAttrWithMinzoom("lanes:backward", BeamlineOptions.laneCount(sf.getString("lanes:backward")), z)
++        .setAttrWithMinzoom("lanes:both_ways", BeamlineOptions.laneCount(sf.getString("lanes:both_ways")), z)
++        .setAttrWithMinzoom("turn:lanes", BeamlineOptions.turnLanes(sf.getString("turn:lanes")), z)
++        .setAttrWithMinzoom("turn:lanes:forward", BeamlineOptions.turnLanes(sf.getString("turn:lanes:forward")), z)
++        .setAttrWithMinzoom("turn:lanes:backward", BeamlineOptions.turnLanes(sf.getString("turn:lanes:backward")), z)
++        .setAttrWithMinzoom("turn:lanes:both_ways", BeamlineOptions.turnLanes(sf.getString("turn:lanes:both_ways")),
++          z);
++    }
++
+     // Server sort features so client label collisions are pre-sorted
+     feat.setSortKey(minZoom);
+ 
+@@ -847,12 +867,30 @@ public class Roads implements ForwardingProfile.LayerPostProcessor, ForwardingPr
+       item.tags().remove("pm:highway");
+     }
+ 
++    // beamline: lines whose lane tags depend on the line's direction are not merged. Planetiler's LoopLineMerger
++    // keeps the direction only where ways meet head to tail; where two ways with the same attributes meet head to
++    // head (or at a junction it joins by angle) it reverses one of them, which would swap lanes:forward/backward and
++    // the left-to-right order of turn:lanes. These lines keep the OSM way's direction, one feature per way.
++    List<VectorTile.Feature> directional = new ArrayList<>();
++    if (BeamlineOptions.lanesMinZoom >= 0 && zoom >= BeamlineOptions.lanesMinZoom) {
++      List<VectorTile.Feature> mergeable = new ArrayList<>(items.size());
++      for (var item : items) {
++        (BeamlineOptions.hasDirectionalLaneTags(item.tags()) ? directional : mergeable).add(item);
++      }
++      items = mergeable;
++    }
++
+     items = FeatureMerge.mergeLineStrings(items,
+       0.5, // after merging, remove lines that are still less than 0.5px long
+       0.1, // simplify output linestrings using a 0.1px tolerance
+       4 // remove any detail more than 4px outside the tile boundary
+     );
+ 
++    if (!directional.isEmpty()) {
++      items = new ArrayList<>(items);
++      items.addAll(directional);
++    }
++
+     return items;
+   }
+ }

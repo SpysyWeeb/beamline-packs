@@ -1,0 +1,63 @@
+{
+  "_comment": "Map pack build settings. Paths are relative to the repo root. Second round (2026-11-15): packs go to data/map/packs-v2; the first round's packs in data/map/packs are left as they are.",
+  "snapshot": "261114",
+  "output_dir": "data/map/packs-v2",
+  "raw_dir": "data/map/work/raw-v2",
+  "states": {
+    "pa": {
+      "name": "Pennsylvania",
+      "usps": "PA",
+      "osm": "data/osm/pennsylvania-261114.osm.pbf",
+      "poly": "data/osm/pennsylvania.poly"
+    },
+    "oh": {
+      "name": "Ohio",
+      "usps": "OH",
+      "osm": "data/osm/ohio-261114.osm.pbf",
+      "poly": "data/osm/ohio.poly"
+    }
+  },
+  "clip": {
+    "source": "census-tiger",
+    "file": "data/map/work/data/census/tl_2026_us_state.zip",
+    "_note": "US Census TIGER/Line 2026 state polygons (public domain): the legal state areas including water (Lake Erie). The Geofabrik .poly outlines used in the first round are buffered by 0.4-1 km, so neighbouring packs overlapped. Written to data/map/work/clip-v2/<state>.geojson by census_clip.py."
+  },
+  "build": {
+    "threads": 4,
+    "java_heap": "4g",
+    "_java_heap_note": "the first PA z0-15 build ran with 5g and peaked at 6.72 GiB working set; with 4g the process stays near the 6 GB budget (see docs/experiments/02-map.md)",
+    "clip_buffer": 0,
+    "landcover": false,
+    "_landcover_note": "false = feed the profile an empty landcover GeoPackage so no ESA WorldCover (CC-BY 4.0) data, and no extra credit line, ends up in the pack. The landcover layer only exists at z0-z7."
+  },
+  "lanes": {
+    "_comment": "Lane tags in the roads layer (profile patch, packbuilder/map/profile/). Only highway=motorway, trunk, primary and their links. Integers: lanes, lanes:forward, lanes:backward, lanes:both_ways. Strings as in OSM: turn:lanes, turn:lanes:forward, turn:lanes:backward, turn:lanes:both_ways. Lines with a direction-dependent value (:forward, :backward, turn:lanes) are not line-merged, so they keep the OSM way's direction (patch version 2).",
+    "minzoom": 14
+  },
+  "poi_drop_kinds": [
+    "tree", "shrub", "crossing", "street_lamp", "bench", "waste_basket", "picnic_table", "bicycle_parking",
+    "post_box", "letter_box", "switch", "signal", "buffer_stop", "tram_crossing", "turning_circle", "turning_loop",
+    "loading_dock", "camp_pitch", "parking_space", "vending_machine", "milestone", "public_bookcase",
+    "navigationaid", "holding_position", "census", "boundary_stone", "firepit", "bbq", "waste_disposal",
+    "drinking_water"
+  ],
+  "_poi_drop_kinds_note": "POI kinds left out when a variant has \"poi_drop\": true. Street furniture, trees, pedestrian crossings, railway switches and signals, cul-de-sac turning circles, parking spaces. Kept for driving: stop, give_way, traffic_signals, level_crossing, motorway_junction, parking, parking_entrance, fuel, charging_station and every shop, restaurant and other destination.",
+  "variants": {
+    "_comment": "build_pack.py <state> --variant NAME. maxzoom; clamp = put the stock profile's z15-only POIs, house numbers and private roads into maxzoom; poi_drop = leave out poi_drop_kinds; buildings_detail_at_top = no merging of buildings at maxzoom; format = mvt or mlt (MapLibre Tiles, with optional Planetiler mlt_* flags); lanes = false leaves the lane tags out (for measuring their cost).",
+    "z15": {"maxzoom": 15, "clamp": false, "poi_drop": false, "buildings_detail_at_top": false, "format": "mvt"},
+    "z15-drop": {"maxzoom": 15, "clamp": false, "poi_drop": true, "buildings_detail_at_top": false, "format": "mvt"},
+    "z14": {"maxzoom": 14, "clamp": true, "poi_drop": true, "buildings_detail_at_top": false, "format": "mvt"},
+    "z14-nolanes": {"maxzoom": 14, "clamp": true, "poi_drop": true, "buildings_detail_at_top": false, "format": "mvt", "lanes": false},
+    "z14-keep": {"maxzoom": 14, "clamp": true, "poi_drop": false, "buildings_detail_at_top": false, "format": "mvt"},
+    "z14-bdetail": {"maxzoom": 14, "clamp": true, "poi_drop": true, "buildings_detail_at_top": true, "format": "mvt"},
+    "z14-mlt": {"maxzoom": 14, "clamp": true, "poi_drop": true, "buildings_detail_at_top": false, "format": "mlt", "mlt_flags": []},
+    "z14-mlt-fast": {"maxzoom": 14, "clamp": true, "poi_drop": true, "buildings_detail_at_top": false, "format": "mlt", "mlt_flags": ["--mlt_fastpfor=true", "--mlt_fsst=true"]}
+  },
+  "recommended_variant": "z14",
+  "finish": {
+    "_comment": "finish_pack.py, run by build_pack.py on Planetiler's output. Header bounds come from the clip polygon.",
+    "remove_codepoints": [[65536, 1114111], [65024, 65039], [8205, 8205]],
+    "_remove_codepoints_note": "Removed from every string in the tiles: everything above U+FFFF (emoji such as U+1F7E2 in Ohio trail names, Osage letters in Oklahoma place names), variation selectors U+FE00-FE0F and the zero-width joiner U+200D. The style bundle has glyph ranges for U+0000-FFFF only.",
+    "drop_layers": []
+  }
+}
