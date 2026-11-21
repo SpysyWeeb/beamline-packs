@@ -103,8 +103,9 @@
     "score": 3.0
   },
   "near_street": {
-    "_doc": "The street at a point (a dropped pin): the nearest street line within within_m, among at most max_streets streets whose box holds the point.",
+    "_doc": "The street at a point (a dropped pin): the nearest street line within within_m, among at most max_streets streets whose box holds the point. With the addresses database: the house number of that street's address point nearest to the point, when one is within house_within_m (farther away it is somebody else's house).",
     "within_m": 60.0,
-    "max_streets": 400
+    "max_streets": 400,
+    "house_within_m": 40.0
   }
 }

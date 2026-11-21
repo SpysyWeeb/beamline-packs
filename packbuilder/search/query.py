@@ -660,9 +660,11 @@ class SearchEngine:
 
     def near_street(self, lat: float, lon: float) -> dict | None:
         """The street at a point (a dropped pin): the street entry whose line is nearest, within
-        ranking.json near_street.within_m, as {"id", "name", "subtitle", "distance_m", "lat", "lon"} (the
-        point of the line); None without one, without lines in the pack, or for a position that is not usable.
-        Equal distances: the more important street, then the lower id."""
+        ranking.json near_street.within_m, as {"id", "name", "subtitle", "distance_m", "lat", "lon", "house"}
+        (the point of the line; "house": the house number of that street's address point nearest to the
+        position, within near_street.house_within_m, or None: [_house_near]); None without a street, without
+        lines in the pack, or for a position that is not usable. Equal distances: the more important street,
+        then the lower id."""
         at = valid_position(lat, lon)
         if not at or not self.has_lines:
             return None
@@ -682,6 +684,38 @@ class SearchEngine:
             if best is None or key < best[0]:
                 best = (key, {"id": eid, "name": name, "subtitle": sub or "", "distance_m": round(nb[0], 1),
                               "lat": round(nb[1], 6), "lon": round(nb[2], 6)})
+        if best is None:
+            return None
+        out = best[1]
+        out["house"] = self._house_near(out["id"], at)
+        return out
+
+    def _house_near(self, eid: int, at) -> str | None:
+        """The house number on street entry [eid] nearest to [at]: among the address points of the
+        street's key (the addresses database, as [_houses] joins it) within near_street.house_within_m of
+        the position; equal distances (to 0.1 m): the lower number as text. None without the addresses
+        database, without a key, or when no address point is that near."""
+        if not self.addr_ok or not self.has_addr_key:
+            return None
+        k = self.db.execute("SELECT addr_key FROM street WHERE entry_id = ?", (eid,)).fetchone()
+        if not k or not k[0]:
+            return None
+        a = self.rk["addresses"]
+        within = self.rk["near_street"]["house_within_m"]
+        dlat = within / lines.M_PER_DEG
+        dlon = within / (lines.M_PER_DEG * math.cos(math.radians(at[0])))
+        rows = self.db.execute(
+            f"SELECT {a['housenumber']}, {a['lat']}, {a['lon']} FROM addr.{a['table']} WHERE {a['street_key']} = ? "
+            f"AND {a['lat']} BETWEEN ? AND ? AND {a['lon']} BETWEEN ? AND ?",
+            (k[0], at[0] - dlat, at[0] + dlat, at[1] - dlon, at[1] + dlon)).fetchall()
+        best = None
+        for hn, la, lo in rows:
+            d = haversine_km(at[0], at[1], la, lo) * 1000.0
+            if d > within or not hn:
+                continue
+            key = (round(d, 1), str(hn))
+            if best is None or key < best:
+                best = key
         return best[1] if best else None
 
     def bbox_of(self, eid):
