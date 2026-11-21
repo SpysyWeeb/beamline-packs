@@ -38,6 +38,7 @@ import osmium.geom
 import shapely
 
 import doors
+import signals
 import normalize
 import rules
 
@@ -97,6 +98,8 @@ class Extract:
         self.roads: list[dict] = []
         self.pois: list[dict] = []
         self.parks: list[dict] = []
+        # signals.py (item 36): the traffic lights as (lon, lat)
+        self.signals: list[tuple] = []
         # natural=* / waterway=* objects are kept only for the values a category rule names
         # (beach, waterfall, cave_entrance, peak), not every named wood or water
         self.natural_values = rulebook.tag_values("natural")
@@ -200,6 +203,8 @@ class Extract:
             return
         tags = n.tags
         lon, lat = n.location.lon, n.location.lat
+        if signals.is_signal(tags):
+            self.signals.append((lon, lat))
         if "addr:street" in tags or "addr:postcode" in tags:
             self._add_addr(tags, lon, lat)
         place = tags.get("place")
@@ -363,13 +368,14 @@ def run(pbf: str, rulebook: "rules.RuleBook", threads: int = 4) -> dict:
     out = {
         "source": pbf, "timestamp": timestamp, "seconds": time.time() - t0,
         "boundaries": ex.boundaries, "places": ex.places, "roads": ex.roads, "pois": ex.pois,
-        "parks": ex.parks,
+        "parks": ex.parks, "signals": ex.signals,
         "addr": {"street": ex.addr_street, "city": ex.addr_city, "pc": ex.addr_pc,
                  "lon": ex.addr_lon, "lat": ex.addr_lat, "strings": strings},
         "area_errors": ex.area_errors,
         "admin_relations": admin_rels, "admin_member_ways": grab.found,
         "counts": dict(ex.counts, boundaries=len(ex.boundaries), places=len(ex.places),
                        roads=len(ex.roads), pois=len(ex.pois), parks=len(ex.parks), addrs=len(ex.addr_lon),
+                       signals=len(ex.signals),
                        admin_relations=len(admin_rels), admin_member_ways=len(grab.found),
                        admin_member_ways_wanted=len(member_ways), entrances=len(ex.entrances),
                        **{f"doors_{k}": v for k, v in door_counts.items()}),

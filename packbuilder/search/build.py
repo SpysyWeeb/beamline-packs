@@ -198,6 +198,8 @@ CREATE TABLE poi_door(entry_id INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL 
 -- 1e-5 degree in varints): how far the street is from a point, where two streets cross, which street a
 -- point is on. A street whose ways have fewer than two points in its municipality has no row.
 CREATE TABLE street_line(entry_id INTEGER PRIMARY KEY, line BLOB NOT NULL);
+-- signals.py (docs/next-round.md item 36): every traffic light by its 0.01 degree cell.
+CREATE TABLE signal(cell INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, PRIMARY KEY(cell, lat, lon)) WITHOUT ROWID;
 CREATE TABLE poi_cat(cat_id INTEGER, entry_id INTEGER, PRIMARY KEY(cat_id, entry_id)) WITHOUT ROWID;
 CREATE TABLE context(entry_id INTEGER, place_id INTEGER, source INTEGER, weight REAL,
   PRIMARY KEY(entry_id, place_id)) WITHOUT ROWID;
@@ -323,6 +325,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     import numpy as np
     import shapely
     import geo
+    import signals as traffic_signals
     import lines as street_lines
     import normalize
     import rules
@@ -786,6 +789,11 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     del portions, groups, rg
     lap(f"streets: {n_streets}")
 
+    # ---------------- the traffic lights (signals.py) ----------------
+    # (an extract made before them has none: the table stays empty)
+    signal_rows = sorted({(traffic_signals.cell(lat, lon), round(lat, 7), round(lon, 7)) for lon, lat in ex.get("signals", [])})
+    lap(f"signals: {len(signal_rows)} traffic lights")
+
     # ---------------- the lines of the streets (lines.py) ----------------
     street_line_rows = []
     line_points = 0
@@ -1077,6 +1085,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
         db.executemany("INSERT INTO place VALUES (?,?,?,?,?)", place_rows)
         db.executemany("INSERT INTO street VALUES (?,?,?,?,?)", street_rows)
         db.executemany("INSERT INTO street_line VALUES (?,?)", street_line_rows)
+        db.executemany("INSERT OR IGNORE INTO signal VALUES (?,?,?)", signal_rows)
         db.executemany("INSERT INTO poi VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", poi_rows)
         db.executemany("INSERT INTO poi_door VALUES (?,?,?,?)", ((e, *d) for e, d in sorted(door_rows.items())))
         db.executemany("INSERT OR IGNORE INTO poi_cat VALUES (?,?)", poicat_rows)
@@ -1166,6 +1175,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
             "poi_prefix_cell": "cell = (floor(lat*10)+900)*4000 + floor(lon*10)+1800; p3 = first 3 characters of name_key",
             "street_line": "1: lines.py (varint line count; per line varint point count, then zigzag varint lat and lon "
                            "steps of 1e-5 degree from the point before, the first from 0,0)",
+            "signal": "1: signals.py (cell = (floor(lat*100)+9000)*40000 + floor(lon*100)+18000)",
             "addr_key": json.dumps(addr_key_info),
             # pack format 3 (docs/architecture.md 2.11): copied into the manifest's search part
             "addr_key_table_version": addr_key_info.get("table_version", ""),
@@ -1191,6 +1201,7 @@ def step_index(state: str, force: bool, fts_detail: str = "none", fts_prefix: st
     os.replace(tmp, out)
     lap("indexes, optimize, vacuum")
     counts = {"entries": len(entries), "places": len(place_rows), "streets": len(street_rows),
+              "signals": len(signal_rows),
               "street_lines": len(street_line_rows), "street_line_points": line_points,
               "street_line_bytes": sum(len(b) for _, b in street_line_rows),
               "pois": len(poi_rows), "poi_doors": len(door_rows),
