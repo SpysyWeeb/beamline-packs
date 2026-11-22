@@ -610,6 +610,9 @@ def download(url: str, dest: Path, tries: int = 5) -> None:
     raise SystemExit(f"download failed: {url}")
 
 
+GEOFABRIK_PAUSES_S = (30, 90, 240)   # between the tries to find a state's folder
+
+
 def url_exists(url: str) -> bool:
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=UA, method="HEAD"), timeout=60):
@@ -648,14 +651,20 @@ def geofabrik_dir(name: str) -> str:
     latest extract's .md5 is still taken when its listing has dated extracts (fetch_extracts' fallback)."""
     base = CONFIG["geofabrik_base"]
     folders = (f"{base}/{name}", base)
-    for d in folders:
-        if url_exists(f"{d}/{name}-latest.osm.pbf.md5"):
-            return d
-    for d in folders:
-        if dated_extracts(d, name):
-            print(f"   Geofabrik: no {name}-latest.osm.pbf.md5 under {d}/, but dated extracts are listed there",
-                  flush=True)
-            return d
+    # Neither answer may only mean that the server did not answer for a moment (it happened): asked again
+    # after each pause of GEOFABRIK_PAUSES_S before the run gives up.
+    for pause in (*GEOFABRIK_PAUSES_S, None):
+        for d in folders:
+            if url_exists(f"{d}/{name}-latest.osm.pbf.md5"):
+                return d
+        for d in folders:
+            if dated_extracts(d, name):
+                print(f"   Geofabrik: no {name}-latest.osm.pbf.md5 under {d}/, but dated extracts are listed there",
+                      flush=True)
+                return d
+        if pause is not None:
+            print(f"   Geofabrik: no answer for {name} under {base}/; asking again in {pause} s", flush=True)
+            time.sleep(pause)
     raise SystemExit(f"Geofabrik: no {name}-latest.osm.pbf.md5 and no dated extract under {base}/{name}/ or {base}/")
 
 
