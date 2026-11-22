@@ -3,9 +3,13 @@
     python packbuilder/comma/check.py --pack data/out/packs/us-pa --parts data/out/comma/us-pa
                                       [--mapd data/comma/mapd-tool/mapd] [--json result.json] [--rev COMMIT]
 
-- search-code.tar: the five files and nothing else, equal to packbuilder/search of this checkout
-  (or of --rev COMMIT, for a pack built from an older commit), its ranking.json the one the pack's
-  search file was built with;
+- search-code.tar: the five files and nothing else; query.py, lines.py and normalize.py the frozen
+  release pins.json pins; ranking.json and abbreviations.json equal to packbuilder/search of this
+  checkout (or of --rev COMMIT, for a pack built from an older commit), its ranking.json the one the
+  pack's search file was built with (the result also says, without failing, when packbuilder/search
+  has moved ahead of the release);
+- the search code answers: unpacked and imported in a separate Python, it finds the known places of
+  search_probes.json in the pack's own search.sqlite (search_code.py --answers);
 - roads.tar: the member rule, every tile against StarPilot decoder's checks (size, header, zlib,
   classes, line lengths), tiles of each of the zooms 8, 11 and 14, every tile touching the pack's bounds;
 - mapd.tar: the member rule, exactly the two-degree groups covering the pack's bounds, all 64 cells of
@@ -36,12 +40,20 @@ def check(pack: Path, parts: Path, mapd_bin: Path | None, rev: str | None = None
     def run(name, fn):
         try:
             results[name] = {"ok": True, **fn()}
-        except (Refused, OSError, ValueError) as e:
+        except (Refused, OSError, ValueError, KeyError) as e:
             results[name] = {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
     def search_code():
         return {"members": search_code_part.verify(parts / "search-code.tar", pack / "manifest.json",
-                                                   search_code_part.SEARCH, rev)}
+                                                   search_code_part.SEARCH, rev),
+                "release": search_code_part.pins()["release"],
+                # a report, not a failure: the comma keeps running the release until a new one is made
+                "packbuilder_search_moved_ahead": search_code_part.moved_ahead()}
+
+    def search_answers():
+        addresses = pack / "addresses.sqlite"
+        return search_code_part.answers(parts / "search-code.tar", pack / "search.sqlite",
+                                        addresses if addresses.is_file() else None, manifest["state"])
 
     def roads():
         return {"zooms": roads_part.verify(parts / "roads.tar", manifest["bounds"])}
@@ -61,7 +73,8 @@ def check(pack: Path, parts: Path, mapd_bin: Path | None, rev: str | None = None
             raise Refused("Mapd did not admit the archives")
         return {**rep, "box": box, "source_date": date}
 
-    for name, fn in (("search_code", search_code), ("roads", roads), ("mapd", mapd)):
+    for name, fn in (("search_code", search_code), ("search_answers", search_answers), ("roads", roads),
+                     ("mapd", mapd)):
         run(name, fn)
     results["ok"] = all(v["ok"] for v in results.values())
     return results

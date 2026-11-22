@@ -21,7 +21,10 @@ One state is installed at a time in version 1.
 ```
 
 A reader must treat a missing piece as "that feature is not installed", never as an error.
-`<root>/.staging-*` and `<root>/.old-*` are the installer's and are never read.
+`<root>/.staging-*` (with its `job.json`), `<root>/.old-*` and `<root>/.swap.json` (the swap's journal)
+are the installer's and are never read by anyone else. Beside `<root>`, the folder `beamline-state/`
+is the downloader's too: the last catalog it read with the highest serial seen, the person's request
+and the job's status. It is kept when a pack is removed.
 
 ## 2. The comma catalog
 
@@ -65,7 +68,12 @@ the phone app's and is not changed by this). A downloader reads only `comma.json
 
 Rules (the same as the phone catalog's, `beamline-catalog/1`, where that has one):
 
-- `serial` only grows; a reader keeps the highest it has seen and refuses a lower one.
+- `serial` is the UTC time the catalog was written, as the 14 digits `YYYYMMDDhhmmss` of a real date
+  and time (20261122101500 is 2026-11-22 10:15:00 UTC; 20261122101560 is no time at all). It only
+  grows: when the time of writing is not above the last serial, the writer takes the second after it.
+  A reader keeps the highest it has seen and refuses a lower one, one that is not such a time, and one
+  that lies more than two days (172,800 s) ahead of its own clock. The writer refuses to write or
+  publish a serial a reader would refuse.
 - `transfer.path` is relative to the URL of `comma.json`; `encoding` is `identity` or `gzip`. `bytes` and
   `sha256` of the part are of the file **as installed** (after gunzip); those inside `transfer` are of the
   file as downloaded. Both are checked.
@@ -81,8 +89,27 @@ Rules (the same as the phone catalog's, `beamline-catalog/1`, where that has one
 ### What the three comma-only parts are
 
 - `search_code` (`search-code.tar`, uncompressed POSIX tar, members at the top level, no folders): the
-  five files of `<root>/search/`, copied from `packbuilder/search` of the commit that built the pack's
-  search file.
+  five files of `<root>/search/`. The code, `query.py`, `lines.py` and `normalize.py`, is a frozen
+  release kept in `packbuilder/comma/search-release` (exported to the packs repository with it), never
+  the working copy in `packbuilder/search`: each file's size and SHA-256 (of the bytes git stores, LF
+  line ends) are pinned in `packbuilder/comma/pins.json` "search_code" and named by StarPilot's
+  source, so a pack can never bring code StarPilot has not named. The builder refuses a release file
+  off its pin, and every check of the part refuses a tar whose code is not the pinned release. The
+  data, `ranking.json` and `abbreviations.json`, is the pack's own, copied from `packbuilder/search` of
+  the commit that built the pack's search file (`ranking.json` is the one the search file was built
+  with). Before `comma.json` is written, the weekly build's check unpacks the tar and imports its code
+  in a separate Python, the way StarPilot loads it, and the code must find known places (Peach Street
+  and Erie in Pennsylvania) in that week's search file.
+
+  | Release | File | Bytes | SHA-256 |
+  |---|---|---|---|
+  | 1 (first published in `us-pa-202611220901`) | `query.py` | 65649 | `e576804ab39bb67ac87aff32f2eb74234e024afa61b3ec7fe75605bbf8fbd76a` |
+  | | `lines.py` | 7491 | `cdb634b2ac4541de73b228b075f0dc0be7e0f0bed2f1e84b5d2eeface3050517` |
+  | | `normalize.py` | 4339 | `fc9040c03500dab1a9265a32c7918488dcd6b3b2af813302fcb4d70c3e8f62e6` |
+
+  A new release is a deliberate act, in this order: StarPilot's pin list takes the new SHA-256 (next
+  to the old ones); then the pack side copies the three files into `search-release`, pins them with
+  the next release number and adds a row here. A pack never carries a release StarPilot does not name.
 - `roads` (`roads.tar`, uncompressed POSIX tar): members `<z>/<x>/<y>.rt` for z in 8, 11 and 14, one per
   tile of the state's map that has at least one road (section 4). Installed by unpacking into `<root>/roads/`.
 - `mapd` (`mapd.tar`, uncompressed POSIX tar): members `<lat>/<lon>.tar.gz`, Mapd's group archives for
@@ -102,7 +129,10 @@ outside the names above, and never follows links.
  "mapd": {"min_lat": 38, "min_lon": -82, "max_lat": 44, "max_lon": -74, "source_date": "2026-11-21", "admitted": false}}
 ```
 
-`parts` lists only what is installed. `beamline.pack_status()` reads `name` and
+`parts` lists only what is installed. An installer that left the search code out because it is not a
+release its StarPilot names records `"search_missing": "code"`; `search_pins` may name the release it
+did install. A swap replaces only the pieces of this install; pieces of the same build that are already
+in place stay. `beamline.pack_status()` reads `name` and
 `osm_snapshot`; it must keep working with this file and with the older one that has only those keys.
 
 ## 4. Road tiles (`.rt`)
@@ -135,8 +165,9 @@ decoder and stay under its 2 MB limit.
 Made with Mapd's own generator (`mapd generate`, built from StarPilot's `mapd_repo`) from the same
 OpenStreetMap extract as the pack, after Mapd's own preparation: only ways whose `highway` is one of
 motorway, trunk, primary, secondary, tertiary, unclassified, residential and their `_link` kinds, with
-every way's node coordinates stored on the way. Bounds are whole two-degree groups; every
-quarter-degree cell of every group is present (empty cells too). Each group is one gzip tar
+every way's node coordinates stored on the way. Bounds are whole two-degree groups; `mapd.tar`
+holds exactly one archive for every group of its bounds, and every quarter-degree cell of every group
+is present (empty cells too). Each group is one gzip tar
 `<lat>/<lon>.tar.gz` whose members are `offline/<lat>/<lon>/<cell>`. On the device:
 
 ```
@@ -145,10 +176,13 @@ mapd --snapshot-admit --offline-root /data/media/0/starpilot/maps/offline \
   --archive-dir <root>/mapd --source-date <source_date>
 ```
 
-Admission is Mapd's; the installer runs it only when StarPilot's packaged `mapd` is present and the
-offline root exists, and records the result in `pack.json` (`mapd.admitted`). Known limit: the
-archives cover whole groups but hold one state's roads, so they replace what an official Mapd region
-had in those groups for neighbouring states.
+Admission is Mapd's; the installer runs it only when the person chose it for that download, StarPilot's
+packaged `mapd` is present and the offline root exists, and records the result in `pack.json`
+(`mapd.admitted`). What it does, as Mapd's own code has it at the pinned commit: `--snapshot-admit` makes
+a new generation from the given archives alone and selects it. Afterwards Mapd uses this state's roads
+only, in the groups the state touches; every Mapd region selected before is no longer used (its files
+stay; choosing it again in Mapd's own maps brings it back), and neighbouring states have no roads in
+those groups. So admission is off unless chosen, and whoever offers the choice must say this plainly.
 
 ## 6. Installing
 

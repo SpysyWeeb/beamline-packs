@@ -15,6 +15,10 @@
     "_comment": "When a state's <state>-latest.osm.pbf cannot be downloaded (after the retries) or never matches its .md5, the newest dated extract <state>-YYMMDD.osm.pbf of the same Geofabrik folder that downloads and matches its own .md5 is used, if the map date in its header is at most max_age_days old. The log and run.json ('extracts') say which file was used and why.",
     "max_age_days": 10
   },
+  "comma": {
+    "_comment": "Every comma step (Mapd's setup, the three comma files of each state, their check, comma.json) runs in a process group of its own; past step_time_limit_s the whole group is killed and the step counts as failed, so a stalled git fetch or Go module download cannot use up the job's 345 minutes and hold back the phone's packs. A whole run took 46 minutes on 2026-11-22.",
+    "step_time_limit_s": 1800
+  },
   "threads": 2,
   "java_heap": "3g",
   "keep_builds": 2,

@@ -18,12 +18,19 @@ run      Restores the slower-changing inputs from the store, fetches this week's
          tests, the test routes, not much smaller than the published pack) and writes the catalog site
          (packbuilder/catalog/build_catalog.py --check) into data/out/site. Nothing is published.
          The comma side, kept apart: the pack's three comma-only parts (packbuilder/comma:
-         search-code.tar, roads.tar, mapd.tar, into data/out/comma/us-<state>), their check (with
-         Mapd's own admission) and comma.json (packbuilder/comma/catalog.py --check). Its result is
-         run.json "comma" (ok, or the stage that failed and why; comma.json's size and SHA-256). A
+         search-code.tar, the frozen release of the search code with this week's ranking.json and
+         abbreviations.json; roads.tar; mapd.tar; into data/out/comma/us-<state>), their check (the
+         search code answering known queries from this week's search file in a separate Python,
+         Mapd's own admission) and comma.json (packbuilder/comma/catalog.py --check). Every comma step
+         (Mapd's setup included) has a time limit, config "comma" "step_time_limit_s" (30 minutes):
+         past it the step's whole process group is killed and the step counts as failed. Its result
+         is run.json "comma" (ok, or the stage that failed and why; comma.json's size and SHA-256). A
          failure there never stops the phone's side: the later comma steps are skipped, comma.json
          is not left in the site, and run ends normally with a plain message.
-publish  Only after a run whose checks all passed (data/out/run.json "checks_passed"). --github: one
+publish  Only after a run whose checks all passed (data/out/run.json "checks_passed"), and only when
+         data/out/site/catalog/catalog.json is the file the run checked (its size and SHA-256 in
+         run.json "catalog") and every file it names has the size and SHA-256 it gives: checked before
+         anything is uploaded, else nothing is published. --github: one
          release per pack build (created as a draft, every file uploaded and compared, then
          published), then catalog.json and comma.json of the release tagged "catalog" replaced, then
          pack releases older than the newest config "keep_builds" of each state deleted (never one
@@ -31,8 +38,9 @@ publish  Only after a run whose checks all passed (data/out/run.json "checks_pas
          GitHub CLI with the workflow's GITHUB_TOKEN. --local DIR: the same into a folder laid out like
          GitHub Releases (DIR/<tag>/..., DIR/catalog/catalog.json and comma.json).
          The comma files and comma.json go with them only when run.json records the comma side as
-         passed, comma.json is the file the run checked and every file it names has the size and
-         SHA-256 it gives. Otherwise the phone's side is published exactly as if there were no comma
+         passed, comma.json is the file the run checked, its serial is a real UTC time at most two
+         days ahead of this clock and every file it names has the size and SHA-256 it gives.
+         Otherwise the phone's side is published exactly as if there were no comma
          side, the published comma.json stays untouched, no build it names is deleted, and publish
          ends as failed (exit 1) after publishing.
 
@@ -51,6 +59,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
@@ -158,7 +167,11 @@ class Sampler:
 
     def tree(self) -> list[int]:
         kids: dict[int, list[int]] = {}
-        for d in os.listdir("/proc"):
+        try:
+            entries = os.listdir("/proc")
+        except OSError:  # no /proc (a test on another system): nothing to measure
+            return [self.pid]
+        for d in entries:
             if d.isdigit():
                 try:
                     with open(f"/proc/{d}/stat") as f:
@@ -194,28 +207,62 @@ class Sampler:
         self.th.join()
 
 
-def step(run: dict, name: str, cmd: list, env: dict | None = None, check: bool = True) -> int:
-    """Run one build step: output to data/out/logs/<name>.log, wall time, peak memory and disk recorded."""
+TIMED_OUT = 124   # a step's exit code when it ran past its time limit (as coreutils' timeout gives)
+
+
+def kill_group(proc: subprocess.Popen) -> None:
+    """The step's whole process group (its own session: step's start_new_session), so nothing it started
+    (git, go, a compiler) is left running; only the process itself where there are no process groups."""
+    if hasattr(os, "killpg"):
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    else:
+        proc.kill()
+
+
+def step(run: dict, name: str, cmd: list, env: dict | None = None, check: bool = True,
+         time_limit_s: float | None = None) -> int:
+    """Run one build step: output to data/out/logs/<name>.log, wall time, peak memory and disk recorded.
+    With time_limit_s the step runs in a process group of its own; past the limit the whole group is
+    killed and the step counts as failed (exit TIMED_OUT, "timed_out" in run.json, a line in its log)."""
     LOGS.mkdir(parents=True, exist_ok=True)
     log = LOGS / f"{name}.log"
     free0 = shutil.disk_usage(REPO).free
     t0 = time.time()
-    print(f"== {name}", flush=True)
+    timed_out = False
+    print(f"== {name}" + (f" (time limit {time_limit_s:g} s)" if time_limit_s else ""), flush=True)
     with open(log, "w", encoding="utf-8", errors="replace") as lf:
         lf.write("$ " + " ".join(rel(Path(c)) if os.path.isabs(str(c)) else str(c) for c in cmd) + "\n")
         lf.flush()
         proc = subprocess.Popen([str(c) for c in cmd], stdout=lf, stderr=subprocess.STDOUT, cwd=REPO,
-                                env={**os.environ, **(env or {})})
+                                env={**os.environ, **(env or {})}, start_new_session=time_limit_s is not None)
         s = Sampler(proc.pid)
-        rc = proc.wait()
-        s.done()
+        try:
+            rc = proc.wait(timeout=time_limit_s)
+        except subprocess.TimeoutExpired:
+            kill_group(proc)
+            proc.wait()
+            rc, timed_out = TIMED_OUT, True
+            lf.write(f"\n== {name} ran past its time limit of {time_limit_s:g} s: its processes were killed\n")
+        except BaseException:  # interrupted: a step in a session of its own gets no signal of the terminal
+            if time_limit_s is not None:
+                kill_group(proc)
+                proc.wait()
+            raise
+        finally:
+            s.done()
     rec = {"wall_s": round(time.time() - t0, 1), "peak_rss_mb": round(s.peak_rss / 2**20),
            "disk_peak_extra_mb": round(max(0, free0 - s.min_free) / 2**20),
            "data_mb_after": round(tree_bytes(DATA) / 2**20), "returncode": rc}
+    if timed_out:
+        rec["timed_out"] = True
+        rec["time_limit_s"] = time_limit_s
     run.setdefault("steps", {})[name] = rec
     save_run(run)
-    print(f"   {rec['wall_s']} s, peak {rec['peak_rss_mb']} MiB, data/ {rec['data_mb_after']} MiB, exit {rc}",
-          flush=True)
+    print(f"   {rec['wall_s']} s, peak {rec['peak_rss_mb']} MiB, data/ {rec['data_mb_after']} MiB, exit {rc}"
+          + (f" (KILLED: past its time limit of {time_limit_s:g} s)" if timed_out else ""), flush=True)
     if rc != 0 and check:
         tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]
         print("\n".join("   | " + t for t in tail))
@@ -505,14 +552,14 @@ def setup_comma(run: dict) -> bool:
     """Mapd's generator (the comma's speed-limit map): Go and StarPilot's source at the commit
     packbuilder/comma/pins.json pins (a C compiler, pkg-config and zlib's developer files:
     setup_ubuntu.sh). A failure here never stops the setup: it is recorded in data/comma/setup.json
-    (with the step's log beside it, as run clears data/out), and run then leaves the comma side out."""
+    (with the step's log beside it, as run clears data/out), and run then leaves the comma side out.
+    Like every comma step it has the comma time limit (a stalled fetch is killed and counts as failed)."""
     rec = {"utc": iso(now_utc()), "ok": False}
     try:
-        rc = step(run, "setup-mapd", [py("map"), "packbuilder/comma/mapd.py", "setup", "--dest", str(MAPD_TOOL)],
-                  check=False)
-        rec["ok"] = rc == 0 and (MAPD_TOOL / "mapd").is_file()
+        why = comma_step(run, "setup-mapd", [py("map"), "packbuilder/comma/mapd.py", "setup", "--dest", str(MAPD_TOOL)])
+        rec["ok"] = why is None and (MAPD_TOOL / "mapd").is_file()
         if not rec["ok"]:
-            rec["error"] = f"packbuilder/comma/mapd.py setup failed (exit {rc})"
+            rec["error"] = f"packbuilder/comma/mapd.py setup: {why or 'it built no mapd program'}"
     except (Exception, SystemExit) as e:  # noqa: BLE001 - nothing on the comma side may stop the phone's packs
         rec["error"] = f"{type(e).__name__}: {e}"
     COMMA_DATA.mkdir(parents=True, exist_ok=True)
@@ -542,6 +589,24 @@ def setup_comma(run: dict) -> bool:
 # publish then leaves the published comma.json as it is and ends as failed (after publishing).
 def comma_state(run: dict) -> dict:
     return run.setdefault("comma", {"ok": None})
+
+
+def comma_time_limit() -> int:
+    """The time limit of every comma step (config "comma" "step_time_limit_s"; 30 minutes): a stalled git
+    fetch or Go module download must not use up the job's time and so hold back the phone's packs."""
+    return int(CONFIG.get("comma", {}).get("step_time_limit_s", 1800))
+
+
+def comma_step(run: dict, name: str, cmd: list) -> str | None:
+    """One comma command through step() under the comma time limit: None when it passed, else why not
+    (its exit, or that it ran past the limit and was killed with everything it started)."""
+    limit = comma_time_limit()
+    rc = step(run, name, cmd, check=False, time_limit_s=limit)
+    if rc == 0:
+        return None
+    if (run.get("steps", {}).get(name) or {}).get("timed_out"):
+        return f"{name} ran past its time limit of {limit} s and was stopped; log data/out/logs/{name}.log"
+    return f"{name} failed (exit {rc}); log data/out/logs/{name}.log"
 
 
 def comma_fail(run: dict, stage: str, why: str) -> None:
@@ -983,9 +1048,11 @@ def assemble(run: dict, parts: dict, keep_work: bool) -> None:
 
 def build_comma(run: dict, keep_work: bool) -> str | None:
     """The three comma-only parts of every state's pack (packbuilder/comma,
-    docs/comma-pack-format.md): search-code.tar from packbuilder/search of this checkout, roads.tar from
-    the pack's map, mapd.tar from the state's extract with Mapd's own generator. Returns None when every
-    step passed, else why not (the first failed step; the steps after it are not run)."""
+    docs/comma-pack-format.md): search-code.tar from the frozen release of the search code
+    (packbuilder/comma/search-release, pinned) with packbuilder/search's ranking.json and
+    abbreviations.json, roads.tar from the pack's map, mapd.tar from the state's extract with Mapd's own
+    generator. Each step under the comma time limit. Returns None when every step passed, else why not
+    (the first failed step; the steps after it are not run)."""
     remove(COMMA)
     for st in states():
         pack = OUT / "packs" / f"us-{st}"
@@ -1009,9 +1076,9 @@ def build_comma(run: dict, keep_work: bool) -> str | None:
                                   "--no-admit"] + ([] if keep_work else ["--clean"])),
         ]
         for name, cmd in todo:
-            rc = step(run, name, cmd, check=False)
-            if rc != 0:
-                return f"{name} failed (exit {rc}); log data/out/logs/{name}.log"
+            why = comma_step(run, name, cmd)
+            if why:
+                return why
         comma_state(run).setdefault("parts", {})[st] = {f.name: f.stat().st_size for f in sorted(out.glob("*.tar"))}
         save_run(run)
     return None
@@ -1050,19 +1117,21 @@ def previous_catalog(a) -> dict | None:
 
 
 def check_comma(run: dict) -> str | None:
-    """The comma parts of every state's pack: each present, by the contract's rules, every road tile
-    through StarPilot decoder's checks, mapd.tar admitted by Mapd itself (packbuilder/comma/check.py).
-    Returns None when every state passed, else why not. Kept apart from the phone's checks (checks())."""
+    """The comma parts of every state's pack: each present, by the contract's rules, the search code the
+    pinned release and answering known queries from this week's search file in a separate Python, every
+    road tile through StarPilot decoder's checks, mapd.tar admitted by Mapd itself
+    (packbuilder/comma/check.py), under the comma time limit. Returns None when every state passed, else
+    why not. Kept apart from the phone's checks (checks())."""
     bad = []
     for st in states():
-        ok = step(run, f"check-comma-{st}", [sys.executable, "packbuilder/comma/check.py", "--pack",
-                                             str(OUT / "packs" / f"us-{st}"), "--parts", str(COMMA / f"us-{st}"),
-                                             "--mapd", str(MAPD_TOOL / "mapd"), "--json",
-                                             str(OUT / "checks" / f"comma-{st}.json")], check=False) == 0
-        comma_state(run).setdefault("checks", {})[st] = ok
+        why = comma_step(run, f"check-comma-{st}", [sys.executable, "packbuilder/comma/check.py", "--pack",
+                                                    str(OUT / "packs" / f"us-{st}"), "--parts", str(COMMA / f"us-{st}"),
+                                                    "--mapd", str(MAPD_TOOL / "mapd"), "--json",
+                                                    str(OUT / "checks" / f"comma-{st}.json")])
+        comma_state(run).setdefault("checks", {})[st] = why is None
         save_run(run)
-        if not ok:
-            bad.append(st)
+        if why:
+            bad.append(f"{st} ({why})" if "time limit" in why else st)
     if bad:
         return (f"the comma parts of {', '.join(bad)} failed their check (data/out/checks/comma-<state>.json, "
                 f"log data/out/logs/check-comma-<state>.log)")
@@ -1135,8 +1204,11 @@ def build_site(run: dict) -> None:
     for st in states():
         args += ["--pack", str(OUT / "packs" / f"us-{st}")]
     step(run, "catalog", args)
-    cat = json.loads((site / "catalog" / "catalog.json").read_text(encoding="utf-8"))
-    run["catalog"] = {"serial": cat["serial"], "packs": [
+    data = (site / "catalog" / "catalog.json").read_bytes()
+    cat = json.loads(data.decode("utf-8"))
+    # publish requires this very file (phone_to_publish), as it requires comma.json's record for the comma side
+    run["catalog"] = {"catalog_json": {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()},
+                      "serial": cat["serial"], "packs": [
         {"id": p["id"], "pack_version": p["pack_version"], "osm_snapshot": p["osm_snapshot"],
          "transfer_bytes": sum(q["transfer"]["bytes"] for q in p["parts"]) + p["manifest"]["bytes"],
          "files": [p["manifest"]["path"]] + [q["transfer"]["path"] for q in p["parts"]]} for p in cat["packs"]]}
@@ -1151,9 +1223,10 @@ def build_comma_catalog(run: dict) -> str | None:
     removed from the site, so it can never be published. Returns None when it passed, else why not."""
     site = OUT / "site"
     path = site / "catalog" / "comma.json"
-    rc = step(run, "comma-catalog", [sys.executable, "packbuilder/comma/catalog.py", "--site", str(site), "--parts",
-                                     str(COMMA), "--check"], check=False)
-    why = None if rc == 0 else f"packbuilder/comma/catalog.py --check failed (exit {rc}); log data/out/logs/comma-catalog.log"
+    why = comma_step(run, "comma-catalog", [sys.executable, "packbuilder/comma/catalog.py", "--site", str(site),
+                                            "--parts", str(COMMA), "--check"])
+    if why:
+        why = f"packbuilder/comma/catalog.py --check: {why}"
     if why is None:
         if not path.is_file():
             why = "packbuilder/comma/catalog.py wrote no comma.json"
@@ -1268,13 +1341,76 @@ def gh(*args: str, capture: bool = False) -> str:
     return r.stdout if capture else ""
 
 
-COMMA_FILE_PATH = re.compile(r"^\.\./(us-[a-z]{2}-\d{12})/[A-Za-z0-9][A-Za-z0-9._-]*$")
+RELEASE_FILE_PATH = re.compile(r"^\.\./(us-[a-z]{2}-\d{12})/[A-Za-z0-9][A-Za-z0-9._-]*$")   # ../<build>/<file>
+SERIAL_AHEAD_MAX_S = 2 * 86400   # a comma refuses a comma.json serial more than two days ahead of its clock
+
+
+def serial_problem(serial) -> str | None:
+    """Why a comma.json serial may not be published (docs/comma-pack-format.md 2), None when it may: it
+    must be the 14 digits YYYYMMDDhhmmss of a real UTC time, at most two days ahead of this clock."""
+    s = str(serial) if isinstance(serial, int) and not isinstance(serial, bool) else ""
+    if not re.fullmatch(r"[1-9]\d{13}", s):
+        return f"its serial {serial!r} is not 14 digits YYYYMMDDhhmmss"
+    try:
+        t = datetime(int(s[0:4]), int(s[4:6]), int(s[6:8]), int(s[8:10]), int(s[10:12]), int(s[12:14]),
+                     tzinfo=timezone.utc)
+    except ValueError:
+        return f"its serial {serial} is not a real UTC time"
+    if (t - now_utc()).total_seconds() > SERIAL_AHEAD_MAX_S:
+        return f"its serial {serial} is more than two days ahead of this clock ({iso(now_utc())})"
+    return None
+
+
+def site_file_problem(p: str, size, sha: str, tag: str) -> str | None:
+    """Why the file a catalog names (../<tag>/<file>, its size and SHA-256) may not be published from
+    data/out/site; None when it is there, inside its own build's release folder, with that size and SHA-256."""
+    m = RELEASE_FILE_PATH.match(p) if isinstance(p, str) else None
+    if not m or m.group(1) != tag:
+        return f"{p!r} for {tag} is outside its release"
+    f = OUT / "site" / "catalog" / p
+    if not f.is_file():
+        return f"{p[3:]} is missing from data/out/site"
+    if f.stat().st_size != size or sha256_file(f) != sha:
+        return f"{p[3:]}: its size or SHA-256 is not the one the catalog gives"
+    return None
+
+
+def phone_to_publish(run: dict) -> tuple[dict | None, str]:
+    """(catalog.json, "") when the phone's side may be published, else (None, why not). It may only when
+    data/out/site/catalog/catalog.json is the very file the run checked (its size and SHA-256 in run.json
+    "catalog", written by build_site) and every file it names (each build's manifest.json and parts) is in
+    its own build's release folder with the size and SHA-256 catalog.json gives. Checked before anything
+    is uploaded or copied; the files themselves are published exactly as they are."""
+    rec = (run.get("catalog") or {}).get("catalog_json") or {}
+    path = OUT / "site" / "catalog" / "catalog.json"
+    if not rec:
+        return None, "run.json records no checked catalog.json (run build/weekly.py run first)"
+    if not path.is_file():
+        return None, "data/out/site/catalog/catalog.json is missing"
+    data = path.read_bytes()
+    if len(data) != rec.get("bytes") or hashlib.sha256(data).hexdigest() != rec.get("sha256"):
+        return None, "data/out/site/catalog/catalog.json is not the catalog.json the run checked (run.json)"
+    try:
+        cat = json.loads(data.decode("utf-8"))
+        packs = cat["packs"]
+        for e in packs:
+            tag = f"{e['id']}-{e['pack_version']}"
+            for q in [e["manifest"]] + [p["transfer"] for p in e["parts"]]:
+                why = site_file_problem(q["path"], q["bytes"], q["sha256"], tag)
+                if why:
+                    return None, f"catalog.json: {why}"
+    except (ValueError, KeyError, TypeError) as e:
+        return None, f"catalog.json cannot be read as the phone catalog ({type(e).__name__}: {e})"
+    if not packs:
+        return None, "catalog.json names no pack"
+    return cat, ""
 
 
 def comma_problem(cat: dict, data: bytes) -> str | None:
     """Why this comma.json (its bytes) may not be published beside this catalog.json; None when it may:
-    its format, exactly one entry per pack build of catalog.json, and every file it names inside its own
-    build's release folder of data/out/site with the size and SHA-256 comma.json gives."""
+    its format, its serial a real UTC time at most two days ahead of this clock (serial_problem), exactly
+    one entry per pack build of catalog.json, and every file it names inside its own build's release
+    folder of data/out/site with the size and SHA-256 comma.json gives."""
     try:
         comma = json.loads(data.decode("utf-8"))
     except ValueError as e:
@@ -1282,9 +1418,11 @@ def comma_problem(cat: dict, data: bytes) -> str | None:
     if not (isinstance(comma, dict) and comma.get("format") == COMMA_FORMAT and isinstance(comma.get("packs"), list)
             and isinstance(comma.get("serial"), int)):
         return f"comma.json is not {COMMA_FORMAT}"
+    why = serial_problem(comma["serial"])
+    if why:
+        return f"comma.json: {why}"
     want = sorted(f"{e['id']}-{e['pack_version']}" for e in cat["packs"])
     have = []
-    site = OUT / "site" / "catalog"
     for e in comma["packs"]:
         if not (isinstance(e, dict) and isinstance(e.get("parts"), list) and e["parts"]):
             return "comma.json has a pack without parts"
@@ -1292,15 +1430,10 @@ def comma_problem(cat: dict, data: bytes) -> str | None:
         have.append(tag)
         for q in e["parts"]:
             t = q.get("transfer") if isinstance(q, dict) else None
-            p = t.get("path") if isinstance(t, dict) else None
-            m = COMMA_FILE_PATH.match(p) if isinstance(p, str) else None
-            if not m or m.group(1) != tag:
-                return f"comma.json names {p!r} for {tag}, outside its release"
-            f = site / p
-            if not f.is_file():
-                return f"{p[3:]} is missing from data/out/site"
-            if f.stat().st_size != t.get("bytes") or sha256_file(f) != t.get("sha256"):
-                return f"{p[3:]}: its size or SHA-256 is not the one comma.json gives"
+            t = t if isinstance(t, dict) else {}
+            why = site_file_problem(t.get("path"), t.get("bytes"), t.get("sha256"), tag)
+            if why:
+                return f"comma.json: {why}"
     if sorted(have) != want:
         return f"comma.json names the builds {sorted(have)}, catalog.json {want}"
     return None
@@ -1392,7 +1525,11 @@ def cmd_publish(a) -> None:
         raise SystemExit("the last run's checks did not all pass (data/out/run.json): nothing is published")
     cat_path = OUT / "site" / "catalog" / "catalog.json"
     comma_path = OUT / "site" / "catalog" / "comma.json"
-    cat = json.loads(cat_path.read_text(encoding="utf-8"))
+    # The phone's side, before anything is uploaded or copied: catalog.json must be the file the run
+    # checked and every file it names must still have the size and SHA-256 it gives (as for comma.json).
+    cat, phone_why = phone_to_publish(run)
+    if cat is None:
+        raise SystemExit(f"{phone_why}: nothing is published")
     # The comma side is published only when the run recorded it as passed and its files are still the
     # ones comma.json gives; otherwise the phone's side is published exactly as if there were no comma
     # side, the published comma.json stays with every build it names, and publish ends as failed.

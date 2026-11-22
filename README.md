@@ -9,7 +9,8 @@ is ever sent to or read from this repository.
   the search index (SQLite) and, optionally, house numbers (SQLite). Data only: the map style ships in
   the app.
 - **For a comma device** (StarPilot): three more files per pack build, the search code
-  (`search-code.tar`), the roads as StarPilot's own road-line tiles (`roads.tar`) and the roads in
+  (`search-code.tar`: a frozen release of the code, `packbuilder/comma/search-release`, whose SHA-256
+  StarPilot pins, with the pack's own rule files), the roads as StarPilot's own road-line tiles (`roads.tar`) and the roads in
   Mapd's format for its speed-limit map (`mapd.tar`), offered with the shared parts by `comma.json`
   (format `beamline-comma-catalog/1`). The app never reads them.
 - **States:** Pennsylvania. More states are one line in `build/config.json` ("states").
@@ -100,7 +101,10 @@ One job on GitHub's standard Linux runner (`.github/workflows/weekly.yml`), one 
    graph of all the states of the build together, cut per state (`packbuilder/routing`), the search
    index (`packbuilder/search`), the house numbers (`packbuilder/addresses`), the pack
    (`packbuilder/pack/assemble.py`, format 3), then the pack's comma files (`packbuilder/comma`): the
-   search code, the road tiles from the pack's map, and Mapd's archives made from the same extract by
+   search code (the frozen release in `packbuilder/comma/search-release`, never the working copy in
+   `packbuilder/search`: each file's size and SHA-256 are pinned in `packbuilder/comma/pins.json` and
+   named by StarPilot, so a pack never brings code StarPilot has not named; with this week's
+   `ranking.json` and `abbreviations.json`), the road tiles from the pack's map, and Mapd's archives made from the same extract by
    Mapd's own generator, built from StarPilot's public source at a pinned commit with Go 1.25.1
    (installed only from go.dev's archive whose SHA-256 `packbuilder/comma/pins.json` pins).
 4. **Checks** (nothing is published unless every one passes): the pack reads and every checksum
@@ -109,11 +113,15 @@ One job on GitHub's standard Linux runner (`.github/workflows/weekly.yml`), one 
    of `build/route_checks.json` plan with lengths near their references; the pack is not much smaller
    than the published one (95 % of its size, 90 % of each part; `--allow-smaller` from the
    "Run workflow" button passes a deliberate change). Apart from these, the comma files are checked:
-   all there and keeping their rules (`packbuilder/comma/check.py`: every road tile passes
-   StarPilot's decoder checks, Mapd itself admits the archives).
+   all there and keeping their rules (`packbuilder/comma/check.py`: the search code is the pinned
+   release and, unpacked and imported in a separate Python the way StarPilot loads it, finds known
+   places such as Peach Street and Erie in this week's search file; every road tile passes
+   StarPilot's decoder checks; Mapd itself admits the archives).
 5. **Catalog site** (`packbuilder/catalog/build_catalog.py --check`, then
    `packbuilder/comma/catalog.py --check` for `comma.json`).
-6. **Publish:** each pack build becomes a release, created as a draft, its files (the comma files
+6. **Publish:** first, before anything is uploaded, `catalog.json` must be the very file the run
+   checked (its size and SHA-256 are recorded in `data/out/run.json`) and every file it names must
+   still have the size and SHA-256 it gives; otherwise nothing is published. Then each pack build becomes a release, created as a draft, its files (the comma files
    included) uploaded and compared, then published; then `catalog.json` of the `catalog` release is
    replaced, then `comma.json`; then releases older than the newest two of each state are deleted
    (never one that `catalog.json` or `comma.json` names); then changed inputs are saved to `inputs`.
@@ -127,7 +135,12 @@ published `comma.json` stays untouched, no build it names is deleted, and the wo
 failed after publishing, with the reason in its log and summary. `publish` takes the comma files and
 `comma.json` only when the run recorded the comma side as passed (`data/out/run.json` "comma") and
 every file `comma.json` names still has the size and SHA-256 it gives, so a later manual `publish`
-cannot publish a `comma.json` whose check failed either.
+cannot publish a `comma.json` whose check failed either. Every comma step has a time limit of 30
+minutes (`build/config.json` "comma"): a stalled step (a git fetch or a Go module download in Mapd's
+setup) is killed with everything it started and counts as that step's failure, so it cannot use up
+the job's time and hold back the phone's packs. `comma.json`'s serial is a real UTC time
+(`YYYYMMDDhhmmss`); one that is not, or that lies more than two days ahead of the clock, is never
+written or published (a comma refuses it).
 
 The run's numbers (time, memory and disk of every step, sizes, the comparison with last week) are on
 the workflow run's summary page.

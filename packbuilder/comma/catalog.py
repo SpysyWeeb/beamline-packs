@@ -17,13 +17,16 @@ each checked with its builder's verify before use; Mapd's admission is check.py'
 - `engines` is the list of pins.json, each url built from its PyPI digest;
 - catalog/comma.json is written (UTF-8, LF, through a temporary file): format
   beamline-comma-catalog/1, `serial` and `generated_utc` the build time (SOURCE_DATE_EPOCH when set,
-  the clock otherwise; always above the serial of a comma.json already in the site), the licence of
+  the clock otherwise; the serial always above that of a comma.json already in the site, as the second
+  after it when needed, so it stays a real UTC time YYYYMMDDhhmmss; a serial that is not such a time
+  or lies more than two days ahead of this clock is refused, never written), the licence of
   catalog.json, one entry per pack whose `credit` joins the credits of the manifest and of the parts it
   names. A run that changes nothing leaves the file as it is.
 
 A pack of catalog.json without comma parts keeps the entry an earlier comma.json in the site has
 for the same build; with none, the run is refused. --check re-reads every file comma.json names
-(size and SHA-256), --check-only does only that. Standard library only.
+(size and SHA-256) and checks the format again (the serial's rule included), --check-only does only
+that. Standard library only.
 """
 from __future__ import annotations
 
@@ -59,6 +62,42 @@ REQUIRED = {"routing", "search", "search_code", "roads"}
 TRANSFER_TABLE = "comma-transfer.json"
 PYPI_FILES = "https://files.pythonhosted.org/packages/"
 WHEEL = re.compile(r"^pyvalhalla-[0-9][0-9a-z.]*-cp3[0-9]+-[a-z0-9_]+-[a-z0-9_]+\.whl$")
+SERIAL_FORMAT = "%Y%m%d%H%M%S"
+SERIAL_AHEAD_MAX_S = 2 * 86400        # a comma refuses a serial more than two days ahead of its clock
+
+
+# ------------------------------------------------------------------ the serial (comma-pack-format.md 2)
+def serial_time(serial) -> datetime.datetime:
+    """The UTC time a serial names: the 14 digits YYYYMMDDhhmmss of a real date and time. ValueError
+    otherwise (a number such as 20261122101560, one second "after" 20261122101559, is not a time)."""
+    s = str(serial) if cf._int(serial) else ""
+    if not re.fullmatch(r"[1-9][0-9]{13}", s):
+        raise ValueError(f"serial {serial!r} is not 14 digits YYYYMMDDhhmmss")
+    try:
+        return datetime.datetime(int(s[0:4]), int(s[4:6]), int(s[6:8]), int(s[8:10]), int(s[10:12]), int(s[12:14]),
+                                 tzinfo=datetime.timezone.utc)
+    except ValueError:
+        raise ValueError(f"serial {serial} is not a real UTC time YYYYMMDDhhmmss") from None
+
+
+def check_serial(serial, now: datetime.datetime | None = None) -> None:
+    """ValueError unless the serial is a real UTC time at most two days ahead of now (this clock)."""
+    t = serial_time(serial)
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    if (t - now).total_seconds() > SERIAL_AHEAD_MAX_S:
+        raise ValueError(f"serial {serial} is more than two days ahead of this clock "
+                         f"({now.strftime('%Y-%m-%dT%H:%M:%SZ')}): a comma refuses it")
+
+
+def next_serial(t: datetime.datetime, previous) -> int:
+    """The serial of a catalog written at t: t itself, or the second after the previous serial when that
+    is not lower (a serial only grows, and stays a real time)."""
+    serial = int(t.strftime(SERIAL_FORMAT))
+    if previous is not None:
+        last = serial_time(previous)
+        if serial <= previous:
+            serial = int((last + datetime.timedelta(seconds=1)).strftime(SERIAL_FORMAT))
+    return serial
 
 
 # ------------------------------------------------------------------ engines (pins.json)
@@ -226,9 +265,10 @@ def check_mapd_object(o) -> bool:
     return -90 <= nums[0] < nums[2] <= 90 and -180 <= nums[1] < nums[3] <= 180
 
 
-def parse(data: bytes, catalog_url: str) -> dict:
+def parse(data: bytes, catalog_url: str, now: datetime.datetime | None = None) -> dict:
     """The catalog, or ValueError naming the first field that breaks comma-pack-format.md 2 (a stricter check
-    than a reader's: the writer must never publish what a reader could refuse)."""
+    than a reader's: the writer must never publish what a reader could refuse). The serial must be a real
+    UTC time at most two days ahead of now (this clock, unless given)."""
     if len(data) > cf.CATALOG_MAX_BYTES:
         raise ValueError("larger than 2 MiB")
     root = json.loads(data.decode("utf-8"))
@@ -236,6 +276,7 @@ def parse(data: bytes, catalog_url: str) -> dict:
         raise ValueError("format")
     if not cf._int(root.get("serial")) or root["serial"] <= 0:
         raise ValueError("serial")
+    check_serial(root["serial"], now)
     if not (isinstance(root.get("generated_utc"), str) and len(root["generated_utc"]) <= cf.MAX_GENERATED_UTC):
         raise ValueError("generated_utc")
     lic = root.get("licence")
@@ -343,9 +384,10 @@ def write(site: Path, parts_root: Path) -> Path:
         print(f"{path.as_posix()}: nothing changed; left as it is")
         return path
     t = bc.build_time()
-    serial = int(t.strftime("%Y%m%d%H%M%S"))
-    if previous and cf._int(previous.get("serial")) and serial <= previous["serial"]:
-        serial = previous["serial"] + 1
+    try:
+        serial = next_serial(t, previous.get("serial") if previous is not None else None)
+    except ValueError as e:
+        raise Refused(f"{path} (the comma.json here): {e}; a serial only grows, so no comma.json can follow it") from None
     cat = {"format": FORMAT, "serial": serial, "generated_utc": t.strftime("%Y-%m-%dT%H:%M:%SZ"), **body}
     data = (json.dumps(cat, indent=1, ensure_ascii=False) + "\n").encode("utf-8")
     parse(data, bc.site_url(site))

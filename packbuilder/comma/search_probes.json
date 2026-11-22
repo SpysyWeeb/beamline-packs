@@ -1,0 +1,9 @@
+{
+  "_comment": "Known queries the weekly comma check (check.py, search_code.py --answers) asks the comma's search code: search-code.tar unpacked, imported in a separate Python (-I -S) the way StarPilot loads it, over the pack's own search.sqlite (and addresses.sqlite when the pack has one). Each query is asked from 'near' ([lat, lon]; null: no position) and must find a result whose title contains 'title' (case ignored), within 'within_km' of 'at', among the first 'top'. Keyed by the pack's state. A state without queries here is asked for its own most important place by name. Only public places: town centres and the public test trip (I-90 east, exit 24, left on Peach Street, right on Downs Drive in Erie).",
+  "PA": [
+    {"query": "Peach Street", "near": [42.028694, -80.128884], "title": "Peach Street", "at": [42.028694, -80.128884], "within_km": 10, "top": 3},
+    {"query": "Downs Drive", "near": [42.028694, -80.128884], "title": "Downs Drive", "at": [42.053308, -80.079579], "within_km": 5, "top": 3},
+    {"query": "Erie", "near": null, "title": "Erie", "at": [42.1292, -80.0851], "within_km": 5, "top": 3},
+    {"query": "Pittsburgh", "near": null, "title": "Pittsburgh", "at": [40.4406, -79.9959], "within_km": 5, "top": 3}
+  ]
+}
