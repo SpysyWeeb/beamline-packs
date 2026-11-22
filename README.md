@@ -8,6 +8,10 @@ is ever sent to or read from this repository.
 - **What a pack holds:** the map (vector tiles, PMTiles), the routing tiles (Valhalla) and their index,
   the search index (SQLite) and, optionally, house numbers (SQLite). Data only: the map style ships in
   the app.
+- **For a comma device** (StarPilot): three more files per pack build, the search code
+  (`search-code.tar`), the roads as StarPilot's own road-line tiles (`roads.tar`) and the roads in
+  Mapd's format for its speed-limit map (`mapd.tar`), offered with the shared parts by `comma.json`
+  (format `beamline-comma-catalog/1`). The app never reads them.
 - **States:** Pennsylvania. More states are one line in `build/config.json` ("states").
 - **How often:** every Monday early morning (09:17 UTC: 4:17 AM US Eastern in winter, 5:17 AM in
   summer), plus a "Run workflow" button.
@@ -21,8 +25,8 @@ is ever sent to or read from this repository.
 
 | Release tag | What it holds |
 |---|---|
-| `catalog` | `catalog.json`: the newest pack of every state, every file with its size and SHA-256 |
-| `us-pa-<YYYYMMDDhhmm>` | one Pennsylvania build: `manifest.json` and one file per part (gzip where it pays) |
+| `catalog` | `catalog.json`: the newest pack of every state, every file with its size and SHA-256; `comma.json`: the same for a comma device |
+| `us-pa-<YYYYMMDDhhmm>` | one Pennsylvania build: `manifest.json`, one file per part (gzip where it pays) and the three comma files |
 | `inputs` | the build's slower-changing inputs (below); not a pack, the app never reads it |
 
 The catalog's address is `https://github.com/<owner>/beamline-packs/releases/download/catalog/catalog.json`;
@@ -38,7 +42,7 @@ file the app's "Use a file instead" reads.
 
 **The data** (written in every release too):
 
-- Map, routing and search data: **© OpenStreetMap contributors**, available under the
+- Map, routing and search data, and the comma files' roads: **© OpenStreetMap contributors**, available under the
   [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/) (ODbL). The packs are
   a Produced Work and a Derivative Database of OpenStreetMap; anyone may use and share them under
   the ODbL with that credit. See `ATTRIBUTION.md`.
@@ -55,6 +59,8 @@ from Tilezen, MIT) with Beamline's patch (`packbuilder/map/profile/`, BSD-3-Clau
 Apache Maven 3.9.16 (Apache-2.0); OpenJDK 25 (GPL-2.0 with the Classpath Exception); Valhalla 3.9.1
 from the pyvalhalla wheel (MIT); pyosmium 4.3.2 (BSD-2-Clause, with libosmium, BSL-1.0); shapely 2.2.0
 (BSD-3-Clause, with GEOS, LGPL-2.1); numpy (BSD-3-Clause); psutil (BSD-3-Clause); pmtiles (BSD-3-Clause);
+Mapd, StarPilot's `mapd_repo` (MIT), with the Go modules its `go.sum` pins, built with Go 1.25.1
+(BSD-3-Clause), for the comma files' Mapd archives;
 pyshp (MIT); openpyxl and et_xmlfile (MIT); usaddress, python-crfsuite and probableparsing (MIT);
 requests (Apache-2.0); urllib3, charset-normalizer (MIT); idna (BSD-3-Clause); certifi (MPL-2.0); and,
 installed by the map builder's pinned list but not used here, playwright (Apache-2.0), pillow
@@ -74,7 +80,12 @@ One job on GitHub's standard Linux runner (`.github/workflows/weekly.yml`), one 
    private network addresses, e-mail addresses, token-like strings, device identifiers, binary or
    large files). Nothing is built when it finds anything.
 2. **Inputs.** The Geofabrik extract of every state (`<state>-latest.osm.pbf`, checked against its
-   MD5, and its `.poly`); its replication date is the pack's OpenStreetMap date. The slower-changing
+   MD5, and its `.poly`); its replication date is the pack's OpenStreetMap date. When the latest
+   extract cannot be downloaded or does not match its MD5 (in November 2026 Geofabrik's "latest" link
+   pointed at a missing file for more than a day), the newest dated extract of the same folder
+   (`<state>-YYMMDD.osm.pbf`) that matches its own MD5 is used, if its map date is at most 10 days old
+   (`build/config.json` "extract_fallback"); the run's log, its summary and `run.json` say which file
+   was used and why. The slower-changing
    inputs come from the `inputs` release; each is fetched from its publisher again only when the
    publisher has a newer file and the kept copy is at least four weeks old (water and land polygons,
    Natural Earth, QRank), or never (the Census, TIGER/Line and NAD files and the time zones, which
@@ -85,19 +96,35 @@ One job on GitHub's standard Linux runner (`.github/workflows/weekly.yml`), one 
 3. **Build** (pinned versions, as the builders pin them): the map (`packbuilder/map`), the routing
    graph of all the states of the build together, cut per state (`packbuilder/routing`), the search
    index (`packbuilder/search`), the house numbers (`packbuilder/addresses`), the pack
-   (`packbuilder/pack/assemble.py`, format 3).
+   (`packbuilder/pack/assemble.py`, format 3), then the pack's comma files (`packbuilder/comma`): the
+   search code, the road tiles from the pack's map, and Mapd's archives made from the same extract by
+   Mapd's own generator, built from StarPilot's public source at a pinned commit with Go 1.25.1
+   (installed only from go.dev's archive whose SHA-256 `packbuilder/comma/pins.json` pins).
 4. **Checks** (nothing is published unless every one passes): the pack reads and every checksum
    matches (`tools/read_pack.py --verify`); the search tests (`packbuilder/search/tests`, thresholds
    in `build/config.json`); the routing part installs the way the app installs it and the test routes
    of `build/route_checks.json` plan with lengths near their references; the pack is not much smaller
    than the published one (95 % of its size, 90 % of each part; `--allow-smaller` from the
-   "Run workflow" button passes a deliberate change).
-5. **Catalog site** (`packbuilder/catalog/build_catalog.py --check`).
-6. **Publish:** each pack build becomes a release, created as a draft, its files uploaded and
-   compared, then published; then `catalog.json` of the `catalog` release is replaced; then releases
-   older than the newest two of each state are deleted; then changed inputs are saved to `inputs`. A
-   run that fails publishes nothing (a draft left behind is deleted) and the published packs stay as
-   they were. Only the workflow's own `GITHUB_TOKEN` (contents: write) is used.
+   "Run workflow" button passes a deliberate change). Apart from these, the comma files are checked:
+   all there and keeping their rules (`packbuilder/comma/check.py`: every road tile passes
+   StarPilot's decoder checks, Mapd itself admits the archives).
+5. **Catalog site** (`packbuilder/catalog/build_catalog.py --check`, then
+   `packbuilder/comma/catalog.py --check` for `comma.json`).
+6. **Publish:** each pack build becomes a release, created as a draft, its files (the comma files
+   included) uploaded and compared, then published; then `catalog.json` of the `catalog` release is
+   replaced, then `comma.json`; then releases older than the newest two of each state are deleted
+   (never one that `catalog.json` or `comma.json` names); then changed inputs are saved to `inputs`.
+   A run that fails publishes nothing (a draft left behind is deleted) and the published packs stay
+   as they were. Only the workflow's own `GITHUB_TOKEN` (contents: write) is used.
+
+**The comma side never holds back the phone's packs.** Every comma step (Mapd's setup, the three
+comma files, their check, `comma.json`) is kept apart: when one fails, the phone's packs and
+`catalog.json` are built, checked and published exactly as if there were no comma side, the
+published `comma.json` stays untouched, no build it names is deleted, and the workflow run ends as
+failed after publishing, with the reason in its log and summary. `publish` takes the comma files and
+`comma.json` only when the run recorded the comma side as passed (`data/out/run.json` "comma") and
+every file `comma.json` names still has the size and SHA-256 it gives, so a later manual `publish`
+cannot publish a `comma.json` whose check failed either.
 
 The run's numbers (time, memory and disk of every step, sizes, the comparison with last week) are on
 the workflow run's summary page.
@@ -113,8 +140,8 @@ repository's report of this step.
 ## Run it yourself (Ubuntu 24.04)
 
 ```
-sudo sh build/setup_ubuntu.sh                        # python3.12-venv, OpenJDK 25, git
-python3 build/weekly.py setup                        # the builders' virtual environments and the map tools
+sudo sh build/setup_ubuntu.sh                        # python3.12-venv, OpenJDK 25, git; gcc, pkg-config, zlib1g-dev (Mapd)
+python3 build/weekly.py setup                        # the builders' virtual environments, the map tools, Mapd
 python3 build/weekly.py run --store ~/packs-inputs   # build and check; the site is in data/out/site
 python3 build/weekly.py publish --local ~/packs-site --store ~/packs-inputs
 python3 packbuilder/catalog/serve_packs.py --root ~/packs-site
@@ -134,8 +161,8 @@ About 20 GB of free disk and 7 GB of memory are enough for Pennsylvania; everyth
 | `build/check_routes.py`, `build/route_checks.json` | the test routes |
 | `build/privacy_scan.py` | the privacy scan |
 | `build/release_to_archive.py` | a release's files to the app's pack archive |
-| `build/setup_ubuntu.sh` | the system packages |
-| `packbuilder/` | the pack builders (each folder has its README) |
+| `build/setup_ubuntu.sh` | the system packages (the workflow's, a self-hosted runner's and a local machine's) |
+| `packbuilder/` | the pack builders (each folder has its README); `packbuilder/comma` the comma files and `comma.json` |
 | `tools/` | the pinned tool fetchers, `read_pack.py` (the pack reader) |
 | `.github/workflows/weekly.yml` | the workflow |
 
@@ -145,4 +172,4 @@ Beamline is an offline-first, driving-first navigation app for Android: maps, ro
 guidance work with no connection, from these packs. The pack format (format 3) and the catalog
 format (`beamline-catalog/1`) are described in the app repository (`docs/pack-format.md`,
 `docs/catalog-format.md`); `tools/read_pack.py` and `packbuilder/catalog/catalog_client.py` read
-them with nothing but Python's standard library.
+them with nothing but Python's standard library. The comma files and `comma.json` are described in `docs/comma-pack-format.md` here.

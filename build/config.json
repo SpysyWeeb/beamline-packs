@@ -11,6 +11,10 @@
            "search_cases": []}
   },
   "geofabrik_base": "https://download.geofabrik.de/north-america/us",
+  "extract_fallback": {
+    "_comment": "When a state's <state>-latest.osm.pbf cannot be downloaded (after the retries) or never matches its .md5, the newest dated extract <state>-YYMMDD.osm.pbf of the same Geofabrik folder that downloads and matches its own .md5 is used, if the map date in its header is at most max_age_days old. The log and run.json ('extracts') say which file was used and why.",
+    "max_age_days": 10
+  },
   "threads": 2,
   "java_heap": "3g",
   "keep_builds": 2,

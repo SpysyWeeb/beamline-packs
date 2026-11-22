@@ -6,19 +6,35 @@
                                   [--allow-smaller] [--keep-work]
     python3 build/weekly.py publish --github | --local DIR   (--store DIR | --store-release TAG)
     python3 build/weekly.py cleanup-drafts            delete unpublished (draft) pack releases (after a failed publish)
+    python3 build/weekly.py comma-status              exit 1 when the last run's comma side failed
 
 run      Restores the slower-changing inputs from the store, fetches this week's Geofabrik extract of
-         every state of build/config.json "states" (checked against its MD5), refreshes an input whose
+         every state of build/config.json "states" (checked against its MD5; when the latest extract
+         cannot be downloaded or never matches its .md5, the newest dated extract of the same folder
+         that matches its own .md5 and whose map date is at most config "extract_fallback"
+         "max_age_days" old, said in the log and in run.json "extracts"), refreshes an input whose
          publisher has a newer file (config "inputs"), builds the map, routing, search and house-number
          parts, assembles each state's pack (format 3), checks it (read_pack.py --verify, the search
          tests, the test routes, not much smaller than the published pack) and writes the catalog site
          (packbuilder/catalog/build_catalog.py --check) into data/out/site. Nothing is published.
+         The comma side, kept apart: the pack's three comma-only parts (packbuilder/comma:
+         search-code.tar, roads.tar, mapd.tar, into data/out/comma/us-<state>), their check (with
+         Mapd's own admission) and comma.json (packbuilder/comma/catalog.py --check). Its result is
+         run.json "comma" (ok, or the stage that failed and why; comma.json's size and SHA-256). A
+         failure there never stops the phone's side: the later comma steps are skipped, comma.json
+         is not left in the site, and run ends normally with a plain message.
 publish  Only after a run whose checks all passed (data/out/run.json "checks_passed"). --github: one
          release per pack build (created as a draft, every file uploaded and compared, then
-         published), then catalog.json of the release tagged "catalog" replaced, then pack releases
-         older than the newest config "keep_builds" of each state deleted, then the changed inputs
-         saved to the store. Uses the GitHub CLI with the workflow's GITHUB_TOKEN. --local DIR: the
-         same into a folder laid out like GitHub Releases (DIR/<tag>/..., DIR/catalog/catalog.json).
+         published), then catalog.json and comma.json of the release tagged "catalog" replaced, then
+         pack releases older than the newest config "keep_builds" of each state deleted (never one
+         that catalog.json or comma.json names), then the changed inputs saved to the store. Uses the
+         GitHub CLI with the workflow's GITHUB_TOKEN. --local DIR: the same into a folder laid out like
+         GitHub Releases (DIR/<tag>/..., DIR/catalog/catalog.json and comma.json).
+         The comma files and comma.json go with them only when run.json records the comma side as
+         passed, comma.json is the file the run checked and every file it names has the size and
+         SHA-256 it gives. Otherwise the phone's side is published exactly as if there were no comma
+         side, the published comma.json stays untouched, no build it names is deleted, and publish
+         ends as failed (exit 1) after publishing.
 
 The store holds the slower-changing inputs between runs: --store DIR (a folder) or --store-release
 TAG (the assets of that GitHub release). Everything this script writes is under data/ (git-ignored).
@@ -51,6 +67,11 @@ OUT = DATA / "out"
 LOGS = OUT / "logs"
 RUN_JSON = OUT / "run.json"
 VENV = REPO / ".venv"
+COMMA = OUT / "comma"                        # the comma-only parts of each pack: data/out/comma/us-<state>/
+COMMA_DATA = DATA / "comma"
+MAPD_TOOL = COMMA_DATA / "mapd-tool"         # Mapd's program, built by setup from StarPilot's pinned source
+COMMA_SETUP = COMMA_DATA / "setup.json"      # setup's record of Mapd's build (run clears data/out, not this)
+COMMA_FORMAT = "beamline-comma-catalog/1"
 UA = {"User-Agent": "beamline-packs-build"}
 PACK_TAG = re.compile(r"^(us-[a-z]{2})-(\d{12})$")
 
@@ -469,6 +490,97 @@ def cmd_setup(_a) -> None:
                                      f"packbuilder/{b}/requirements.txt"])
     step(run, "setup-maven", [py312, "tools/fetch_map_tools.py", "maven"])
     step(run, "setup-profile-jar", [py("map"), "packbuilder/map/build_profile.py"])
+    setup_comma(run)
+
+
+def setup_comma(run: dict) -> bool:
+    """Mapd's generator (the comma's speed-limit map): Go and StarPilot's source at the commit
+    packbuilder/comma/pins.json pins (a C compiler, pkg-config and zlib's developer files:
+    setup_ubuntu.sh). A failure here never stops the setup: it is recorded in data/comma/setup.json
+    (with the step's log beside it, as run clears data/out), and run then leaves the comma side out."""
+    rec = {"utc": iso(now_utc()), "ok": False}
+    try:
+        rc = step(run, "setup-mapd", [py("map"), "packbuilder/comma/mapd.py", "setup", "--dest", str(MAPD_TOOL)],
+                  check=False)
+        rec["ok"] = rc == 0 and (MAPD_TOOL / "mapd").is_file()
+        if not rec["ok"]:
+            rec["error"] = f"packbuilder/comma/mapd.py setup failed (exit {rc})"
+    except (Exception, SystemExit) as e:  # noqa: BLE001 - nothing on the comma side may stop the phone's packs
+        rec["error"] = f"{type(e).__name__}: {e}"
+    COMMA_DATA.mkdir(parents=True, exist_ok=True)
+    log = LOGS / "setup-mapd.log"
+    if not rec["ok"] and log.is_file():
+        shutil.copyfile(log, COMMA_DATA / "setup-mapd.log")
+        rec["log"] = "data/comma/setup-mapd.log"
+    tmp = COMMA_SETUP.with_suffix(".tmp")
+    tmp.write_text(json.dumps(rec, indent=1) + "\n", encoding="utf-8")
+    tmp.replace(COMMA_SETUP)
+    if not rec["ok"]:
+        print(f"== COMMA SIDE: the setup of Mapd's generator failed ({rec['error']}). The phone's packs are built "
+              f"and published as usual; this week's comma files and comma.json are not (the published comma.json "
+              f"stays), and the run ends as failed after publishing.", flush=True)
+    return rec["ok"]
+
+
+# ------------------------------------------------------------------ the comma side, kept apart from the phone's
+# Every comma step (Mapd's setup, the three parts, their check, comma.json) runs through comma_stage:
+# its failure is recorded in run.json "comma" and the later comma steps are skipped, while the phone's
+# packs and catalog.json are built, checked and published exactly as if there were no comma side.
+# publish then leaves the published comma.json as it is and ends as failed (after publishing).
+def comma_state(run: dict) -> dict:
+    return run.setdefault("comma", {"ok": None})
+
+
+def comma_fail(run: dict, stage: str, why: str) -> None:
+    c = comma_state(run)
+    c["ok"] = False
+    c.setdefault("failed", {"stage": stage, "why": why})
+    save_run(run)
+    print(f"== COMMA SIDE FAILED ({stage}): {why}\n   The phone's packs and catalog.json go on as if there were no "
+          f"comma side; this week's comma.json is not published (the published one stays) and the run ends as "
+          f"failed after publishing.", flush=True)
+
+
+def comma_stage(run: dict, stage: str, fn) -> bool:
+    """One comma step: fn() returns None when it passed, else why not. Skipped once the comma side has
+    failed; no error of it ever reaches the phone's side. True when it ran and passed."""
+    c = comma_state(run)
+    if c.get("ok") is False:
+        c.setdefault("skipped", []).append(stage)
+        save_run(run)
+        print(f"== comma {stage}: skipped (the comma side failed: {(c.get('failed') or {}).get('stage', '?')})",
+              flush=True)
+        return False
+    try:
+        why = fn()
+    except (Exception, SystemExit) as e:  # noqa: BLE001 - nothing on the comma side may stop the phone's packs
+        why = f"{type(e).__name__}: {e}"
+    if why:
+        comma_fail(run, stage, str(why))
+        # A failed comma step leaves nothing behind that the phone's steps after it must share the disk
+        # with (Mapd's work folder is gigabytes; a hosted runner has little room). The logs stay.
+        try:
+            remove(COMMA_DATA / "work", COMMA)
+        except OSError as e:
+            print(f"== comma {stage}: could not clear the comma work folders ({e})", flush=True)
+        return False
+    return True
+
+
+def comma_setup_problem() -> str | None:
+    """Why Mapd's generator is not ready (setup's record, data/comma/setup.json); None when it is."""
+    if not COMMA_SETUP.is_file():
+        return "Mapd's generator was not set up (weekly.py setup records it in data/comma/setup.json)"
+    rec = json.loads(COMMA_SETUP.read_text(encoding="utf-8"))
+    if not rec.get("ok"):
+        saved = COMMA_DATA / "setup-mapd.log"
+        if saved.is_file():  # into this run's logs, which a failed workflow run keeps
+            LOGS.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(saved, LOGS / "setup-mapd.log")
+        return f"the setup of Mapd's generator failed: {rec.get('error', 'no reason recorded')}"
+    if not (MAPD_TOOL / "mapd").is_file():
+        return "Mapd's program is missing from data/comma/mapd-tool"
+    return None
 
 
 # ------------------------------------------------------------------ the OSM extracts
@@ -498,24 +610,119 @@ def download(url: str, dest: Path, tries: int = 5) -> None:
     raise SystemExit(f"download failed: {url}")
 
 
+def url_exists(url: str) -> bool:
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA, method="HEAD"), timeout=60):
+            return True
+    except OSError:
+        return False
+
+
+def fetch_text(url: str) -> str:
+    """A small text page (a folder listing): at most 4 MiB."""
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+        return r.read(4 << 20).decode("utf-8", "replace")
+
+
+def dated_extracts(folder: str, name: str) -> list[str]:
+    """The dated extracts "<name>-YYMMDD.osm.pbf" Geofabrik's listing of the folder links to, newest
+    first (the listing's own links are only read for their file names; every download is made from
+    the folder's address). [] when the listing cannot be read."""
+    try:
+        page = fetch_text(folder + "/")
+    except OSError:
+        return []
+    rule = re.compile(rf"^{re.escape(name)}-(\d{{6}})\.osm\.pbf$")
+    found = set()
+    for href in re.findall(r"""href\s*=\s*["']([^"'<>]+)["']""", page):
+        last = href.split("?", 1)[0].split("#", 1)[0].rstrip("/").rsplit("/", 1)[-1]
+        if rule.match(last):
+            found.add(last)
+    return sorted(found, key=lambda f: f[len(name) + 1:len(name) + 7], reverse=True)
+
+
 def geofabrik_dir(name: str) -> str:
     """The folder of a state's files. Geofabrik moved the US states into one folder each
     (north-america/us/<state>/...; the flat north-america/us/<state>-latest... links answer 404 since
-    November 2026); the flat layout is tried second in case it comes back."""
+    November 2026); the flat layout is tried second in case it comes back. A folder without the
+    latest extract's .md5 is still taken when its listing has dated extracts (fetch_extracts' fallback)."""
     base = CONFIG["geofabrik_base"]
-    for d in (f"{base}/{name}", base):
+    folders = (f"{base}/{name}", base)
+    for d in folders:
+        if url_exists(f"{d}/{name}-latest.osm.pbf.md5"):
+            return d
+    for d in folders:
+        if dated_extracts(d, name):
+            print(f"   Geofabrik: no {name}-latest.osm.pbf.md5 under {d}/, but dated extracts are listed there",
+                  flush=True)
+            return d
+    raise SystemExit(f"Geofabrik: no {name}-latest.osm.pbf.md5 and no dated extract under {base}/{name}/ or {base}/")
+
+
+def md5_of(md5_path: Path) -> str:
+    """The MD5 a Geofabrik .md5 file gives ("<32 hex>  <file name>")."""
+    words = md5_path.read_text(encoding="utf-8", errors="replace").split()
+    if not words or not re.fullmatch(r"[0-9a-fA-F]{32}", words[0]):
+        raise SystemExit(f"{md5_path.name} holds no MD5")
+    return words[0].lower()
+
+
+def fetch_checked(url: str, dest: Path, tries: int = 3) -> str:
+    """url's file into dest, matching its own url.md5 (fetched again when it differs: the file may
+    have changed upstream). Returns the MD5; SystemExit when it cannot be downloaded or never matches."""
+    md5p = dest.with_name(dest.name + ".md5")
+    for _ in range(tries):
+        download(url + ".md5", md5p)
+        want = md5_of(md5p)
+        if not (dest.exists() and md5_file(dest) == want):
+            download(url, dest)
+        if md5_file(dest) == want:
+            return want
+        print(f"   {dest.name}: MD5 differs from its .md5 (the file changed upstream?); again", flush=True)
+    raise SystemExit(f"{url.rsplit('/', 1)[-1]}: its MD5 still differs from its .md5 after {tries} tries")
+
+
+def header_time(ts: str) -> datetime:
+    return datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+
+
+def fetch_dated(osm: Path, base: str, name: str) -> tuple[Path, str, str, list[str]]:
+    """The fallback when the latest extract cannot be used: the newest dated extract of the folder that
+    downloads, matches its own .md5 and whose map date (its header) is at most config
+    "extract_fallback" "max_age_days" old (default 10). Returns (file, md5, header time, what was
+    tried before it); SystemExit naming every file tried when none qualifies."""
+    limit = float(CONFIG.get("extract_fallback", {}).get("max_age_days", 10))
+    now = now_utc()
+    tried = []
+    for fname in dated_extracts(base, name):
+        named = datetime.strptime(fname[len(name) + 1:len(name) + 7], "%y%m%d").replace(tzinfo=timezone.utc)
+        if (now - named).total_seconds() > (limit + 1) * 86400:  # by its name already too old: so are the rest
+            tried.append(f"{fname} and older (named more than {limit:g} days ago)")
+            break
+        dest = osm / fname
         try:
-            req = urllib.request.Request(f"{d}/{name}-latest.osm.pbf.md5", headers=UA, method="HEAD")
-            with urllib.request.urlopen(req, timeout=60):
-                return d
-        except OSError:
+            md5 = fetch_checked(f"{base}/{fname}", dest)
+            ts = osm_timestamp(dest)
+        except SystemExit as e:
+            tried.append(f"{fname} ({e})")
+            remove(dest, dest.with_name(dest.name + ".part"))
             continue
-    raise SystemExit(f"Geofabrik: no {name}-latest.osm.pbf.md5 under {base}/{name}/ or {base}/")
+        age = (now - header_time(ts)).total_seconds() / 86400
+        if age > limit:
+            tried.append(f"{fname} (map date {ts}, {age:.1f} days old, over the limit of {limit:g})")
+            remove(dest)
+            continue
+        return dest, md5, ts, tried
+    raise SystemExit(f"{name}: no dated extract of {base}/ qualifies either (tried: {'; '.join(tried) or 'none listed'})")
 
 
 def fetch_extracts(run: dict) -> str:
-    """This week's Geofabrik extract of every state (MD5 checked) and its .poly. Returns the snapshot
-    YYMMDD (the date of the extracts' replication timestamp); every state must share it."""
+    """This week's Geofabrik extract of every state (MD5 checked) and its .poly. When the latest extract
+    cannot be downloaded (after download's retries) or never matches its .md5, the newest dated extract
+    of the same folder that qualifies is used instead (fetch_dated), said plainly in the log and in
+    run.json ("extracts" of the state: "source", "source_file", "fallback_reason"). Returns the
+    snapshot YYMMDD (the date of the extracts' replication timestamp, from each file's header); every
+    state must share it."""
     osm = DATA / "osm"
     t0 = time.time()
     got = {}
@@ -523,36 +730,49 @@ def fetch_extracts(run: dict) -> str:
         name = CONFIG["state_info"][st]["geofabrik"]
         base = geofabrik_dir(name)
         latest = osm / f"{name}-latest.osm.pbf"
-        for attempt in range(3):
-            download(f"{base}/{name}-latest.osm.pbf.md5", osm / f"{name}-latest.osm.pbf.md5")
-            want = (osm / f"{name}-latest.osm.pbf.md5").read_text().split()[0].lower()
-            if not (latest.exists() and md5_file(latest) == want):
-                download(f"{base}/{name}-latest.osm.pbf", latest)
-            if md5_file(latest) == want:
-                break
-            print(f"   {name}: MD5 differs (the file changed upstream?); again", flush=True)
-        else:
-            raise SystemExit(f"{name}: MD5 still differs after 3 tries")
+        try:
+            md5 = fetch_checked(f"{base}/{name}-latest.osm.pbf", latest)
+            try:
+                osm_timestamp(latest)  # a file that matches its .md5 but has no readable map date is no use either
+            except subprocess.CalledProcessError as e:
+                raise SystemExit(f"{latest.name}: its header cannot be read ({e})") from None
+            path, rec = latest, {"source": "latest", "source_file": latest.name}
+        except SystemExit as e:
+            reason = str(e)
+            print(f"== {name}: the latest extract cannot be used ({reason}); looking for the newest dated extract "
+                  f"of {base}/", flush=True)
+            remove(latest, latest.with_name(latest.name + ".part"), latest.with_name(latest.name + ".md5"))
+            try:
+                path, md5, ts, tried = fetch_dated(osm, base, name)
+            except SystemExit as e2:
+                raise SystemExit(f"{name}: the latest extract cannot be used ({reason}), and {e2}") from None
+            rec = {"source": "dated", "source_file": path.name, "fallback_reason": reason}
+            if tried:
+                rec["fallback_skipped"] = tried
+            print(f"== {name}: USING {path.name} (map date {ts}) instead of {latest.name}, because: {reason}"
+                  + (f"; skipped first: {'; '.join(tried)}" if tried else ""), flush=True)
         download(f"{base}/{name}.poly", osm / f"{name}.poly")
-        ts = osm_timestamp(latest)
-        got[st] = (name, ts, want)
-    days = {ts[:10] for _, ts, _ in got.values()}
+        ts = osm_timestamp(path)
+        got[st] = (name, ts, md5, path, rec)
+    days = {v[1][:10] for v in got.values()}
     if len(days) != 1:
         raise SystemExit(f"the extracts are of different days {sorted(days)}: Geofabrik is updating; run again later")
     day = days.pop()
     snap = day[2:4] + day[5:7] + day[8:10]
-    for st, (name, ts, md5) in got.items():
+    for st, (name, ts, md5, path, rec) in got.items():
         dated = osm / f"{name}-{snap}.osm.pbf"
-        dated.unlink(missing_ok=True)
-        os.replace(osm / f"{name}-latest.osm.pbf", dated)
+        if path.resolve() != dated.resolve():  # a fallback file may already have the snapshot's name
+            dated.unlink(missing_ok=True)
+            os.replace(path, dated)
+            path.with_name(path.name + ".md5").unlink(missing_ok=True)
         (osm / f"{name}-{snap}.osm.pbf.md5").write_text(f"{md5}  {dated.name}\n")
-        (osm / f"{name}-latest.osm.pbf.md5").unlink(missing_ok=True)
         run.setdefault("extracts", {})[st] = {"file": dated.name, "md5": md5, "bytes": dated.stat().st_size,
-                                              "replication_timestamp": ts}
+                                              "replication_timestamp": ts, **rec}
     run["snapshot"], run["osm_snapshot"] = snap, day
     run.setdefault("steps", {})["fetch-extracts"] = {"wall_s": round(time.time() - t0, 1)}
     save_run(run)
-    print(f"== extracts: {', '.join(f'{v[0]} {v[1]}' for v in got.values())} -> snapshot {snap}", flush=True)
+    used = ", ".join(f"{v[0]} {v[1]} ({v[4]['source_file']})" for v in got.values())
+    print(f"== extracts: {used} -> snapshot {snap}", flush=True)
     return snap
 
 
@@ -635,6 +855,42 @@ def assemble(run: dict, parts: dict, keep_work: bool) -> None:
                 f.unlink()
 
 
+def build_comma(run: dict, keep_work: bool) -> str | None:
+    """The three comma-only parts of every state's pack (packbuilder/comma,
+    docs/comma-pack-format.md): search-code.tar from packbuilder/search of this checkout, roads.tar from
+    the pack's map, mapd.tar from the state's extract with Mapd's own generator. Returns None when every
+    step passed, else why not (the first failed step; the steps after it are not run)."""
+    remove(COMMA)
+    for st in states():
+        pack = OUT / "packs" / f"us-{st}"
+        out = COMMA / f"us-{st}"
+        out.mkdir(parents=True, exist_ok=True)
+        man = json.loads((pack / "manifest.json").read_text(encoding="utf-8"))
+        mtime = str(int(datetime.strptime(man["created_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                        .timestamp()))
+        extract = DATA / "osm" / f"{CONFIG['state_info'][st]['geofabrik']}-{run['snapshot']}.osm.pbf"
+        todo = [
+            (f"comma-search-code-{st}", [sys.executable, "packbuilder/comma/search_code.py", "--out",
+                                         str(out / "search-code.tar"), "--manifest", str(pack / "manifest.json"),
+                                         "--mtime", mtime]),
+            (f"comma-roads-{st}", [py("map"), "packbuilder/comma/roads.py", "--map", str(pack / "map.pmtiles"),
+                                   "--out", str(out / "roads.tar"), "--mtime", mtime, "--workers",
+                                   str(CONFIG["threads"]), "--report", str(OUT / "checks" / f"roads-{st}.json")]),
+            # Mapd's admission is the comma check's (check.py --mapd), not run twice
+            (f"comma-mapd-{st}", [py("map"), "packbuilder/comma/mapd.py", "build", "--extract", str(extract),
+                                  "--manifest", str(pack / "manifest.json"), "--mapd", str(MAPD_TOOL / "mapd"),
+                                  "--out", str(out / "mapd.tar"), "--work", str(COMMA_DATA / "work"),
+                                  "--no-admit"] + ([] if keep_work else ["--clean"])),
+        ]
+        for name, cmd in todo:
+            rc = step(run, name, cmd, check=False)
+            if rc != 0:
+                return f"{name} failed (exit {rc}); log data/out/logs/{name}.log"
+        comma_state(run).setdefault("parts", {})[st] = {f.name: f.stat().st_size for f in sorted(out.glob("*.tar"))}
+        save_run(run)
+    return None
+
+
 # ------------------------------------------------------------------ checks
 def search_summary(path: Path) -> dict:
     d = json.loads(path.read_text(encoding="utf-8"))
@@ -664,6 +920,26 @@ def previous_catalog(a) -> dict | None:
         gh("release", "download", "catalog", "--pattern", "catalog.json", "--dir", str(tmp), "--clobber",
            capture=True)
         return json.loads((tmp / "catalog.json").read_text(encoding="utf-8"))
+    return None
+
+
+def check_comma(run: dict) -> str | None:
+    """The comma parts of every state's pack: each present, by the contract's rules, every road tile
+    through StarPilot decoder's checks, mapd.tar admitted by Mapd itself (packbuilder/comma/check.py).
+    Returns None when every state passed, else why not. Kept apart from the phone's checks (checks())."""
+    bad = []
+    for st in states():
+        ok = step(run, f"check-comma-{st}", [sys.executable, "packbuilder/comma/check.py", "--pack",
+                                             str(OUT / "packs" / f"us-{st}"), "--parts", str(COMMA / f"us-{st}"),
+                                             "--mapd", str(MAPD_TOOL / "mapd"), "--json",
+                                             str(OUT / "checks" / f"comma-{st}.json")], check=False) == 0
+        comma_state(run).setdefault("checks", {})[st] = ok
+        save_run(run)
+        if not ok:
+            bad.append(st)
+    if bad:
+        return (f"the comma parts of {', '.join(bad)} failed their check (data/out/checks/comma-<state>.json, "
+                f"log data/out/logs/check-comma-<state>.log)")
     return None
 
 
@@ -710,6 +986,8 @@ def checks(run: dict, a) -> None:
             if a.allow_smaller and not shrink["ok"]:
                 shrink.update(ok=True, note="smaller than the published pack, allowed by --allow-smaller")
         r["not_much_smaller"] = shrink
+        # the phone's checks only: the comma parts are checked apart (check_comma), and their failure
+        # never holds back the phone's pack
         st_ok = (r["read_pack_verify"] and r["search_inputs"] and r["routes"].get("ok")
                  and shrink["ok"] and all(v["ok"] for k, v in r.items() if k.startswith("search ")))
         r["ok"] = bool(st_ok)
@@ -724,11 +1002,12 @@ def checks(run: dict, a) -> None:
 
 
 def build_site(run: dict) -> None:
+    """The phone's catalog site (catalog.json and the release folders); comma.json is build_comma_catalog's."""
     site = OUT / "site"
     remove(site)
-    args = [sys.executable, "packbuilder/catalog/build_catalog.py", "--out", "data/out/site", "--check"]
+    args = [sys.executable, "packbuilder/catalog/build_catalog.py", "--out", str(site), "--check"]
     for st in states():
-        args += ["--pack", f"data/out/packs/us-{st}"]
+        args += ["--pack", str(OUT / "packs" / f"us-{st}")]
     step(run, "catalog", args)
     cat = json.loads((site / "catalog" / "catalog.json").read_text(encoding="utf-8"))
     run["catalog"] = {"serial": cat["serial"], "packs": [
@@ -738,16 +1017,62 @@ def build_site(run: dict) -> None:
     save_run(run)
 
 
+def build_comma_catalog(run: dict) -> str | None:
+    """comma.json beside catalog.json (which it never changes): the comma parts' transfer files go into
+    each pack's release folder; every file it names is checked again (catalog.py --check), then once
+    more here the way publish checks it (comma_problem). On success the comma side is recorded as passed
+    in run.json with comma.json's size and SHA-256, which publish requires; on failure comma.json is
+    removed from the site, so it can never be published. Returns None when it passed, else why not."""
+    site = OUT / "site"
+    path = site / "catalog" / "comma.json"
+    rc = step(run, "comma-catalog", [sys.executable, "packbuilder/comma/catalog.py", "--site", str(site), "--parts",
+                                     str(COMMA), "--check"], check=False)
+    why = None if rc == 0 else f"packbuilder/comma/catalog.py --check failed (exit {rc}); log data/out/logs/comma-catalog.log"
+    if why is None:
+        if not path.is_file():
+            why = "packbuilder/comma/catalog.py wrote no comma.json"
+        else:
+            cat = json.loads((site / "catalog" / "catalog.json").read_text(encoding="utf-8"))
+            why = comma_problem(cat, path.read_bytes())
+    if why:
+        path.unlink(missing_ok=True)
+        return why
+    data = path.read_bytes()
+    comma = json.loads(data.decode("utf-8"))
+    c = comma_state(run)
+    c["comma_json"] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(), "serial": comma["serial"]}
+    c["catalog"] = {"serial": comma["serial"], "packs": [
+        {"id": p["id"], "pack_version": p["pack_version"],
+         "files": [q["transfer"]["path"] for q in p["parts"]]} for p in comma["packs"]]}
+    c["ok"] = True
+    save_run(run)
+    return None
+
+
 def write_summary(run: dict) -> None:
     lines = [f"## Weekly pack build {run.get('started_utc', '')}", ""]
     lines.append(f"OSM snapshot {run.get('osm_snapshot', '?')}; states {', '.join(states())}; "
                  f"checks {'passed' if run.get('checks_passed') else 'FAILED or not run'}.")
+    comma = run.get("comma") or {}
+    if comma.get("ok") is True:
+        lines.append("Comma side (comma files and comma.json): passed.")
+    elif comma.get("ok") is False:
+        f = comma.get("failed") or {}
+        lines.append(f"**Comma side FAILED** ({f.get('stage', '?')}): {f.get('why', '')}. The phone's packs and "
+                     f"catalog.json are published without it; the published comma.json stays as it was.")
+    for st, e in run.get("extracts", {}).items():
+        if e.get("source") == "dated":
+            lines.append(f"Extract of {st}: **{e['source_file']}** (map date {e.get('replication_timestamp')}) was "
+                         f"used instead of the latest, because: {e.get('fallback_reason')}.")
     lines += ["", "| Step | Wall (s) | Peak memory (MiB) | Extra disk at peak (MiB) |", "|---|---:|---:|---:|"]
     for k, v in run.get("steps", {}).items():
         lines.append(f"| {k} | {v.get('wall_s', '')} | {v.get('peak_rss_mb', '')} | {v.get('disk_peak_extra_mb', '')} |")
     for st, p in run.get("packs", {}).items():
         lines += ["", f"**{p['pack_id']}-{p['pack_version']}** ({p['osm_snapshot']}, routing {p['graph_build']}): "
                   + ", ".join(f"{k} {v / 1e6:.1f} MB" for k, v in p["parts"].items())]
+        cparts = comma.get("parts", {}).get(st)
+        if cparts:
+            lines.append("Comma parts: " + ", ".join(f"{k} {v / 1e6:.1f} MB" for k, v in cparts.items()) + ".")
         chk = run.get("checks", {}).get(st, {}).get("not_much_smaller", {})
         if chk.get("total_ratio"):
             lines.append(f"Size against the published build {chk['against']}: x{chk['total_ratio']} "
@@ -764,16 +1089,22 @@ def cmd_run(a) -> None:
     remove(OUT)
     started = now_utc()
     run = {"format": "beamline-weekly-run/1", "started_utc": iso(started), "states": states(),
-           "checks_passed": False}
+           "checks_passed": False, "comma": {"ok": None}}
     save_run(run)
     idx = restore_inputs(run, store)
     fetch_extracts(run)
     refresh_inputs(run, idx)
     parts = build_parts(run, a.keep_work)
     assemble(run, parts, a.keep_work)
+    # the comma side: each stage isolated (comma_stage), none of them can stop the phone's packs
+    # (stages: "setup" of Mapd's generator, "parts", their "check", "catalog" = comma.json)
+    comma_stage(run, "setup", comma_setup_problem)
+    comma_stage(run, "parts", lambda: build_comma(run, a.keep_work))
     try:
         checks(run, a)
+        comma_stage(run, "check", lambda: check_comma(run))
         build_site(run)
+        comma_stage(run, "catalog", lambda: build_comma_catalog(run))
     finally:
         run["finished_utc"] = iso(now_utc())
         run["wall_s"] = round(time.time() - started.timestamp())
@@ -781,6 +1112,11 @@ def cmd_run(a) -> None:
         save_run(run)
         write_summary(run)
     print(f"== done in {run['wall_s']} s; site data/out/site", flush=True)
+    if run["comma"].get("ok") is not True:
+        f = run["comma"].get("failed") or {}
+        print(f"== THE COMMA SIDE FAILED ({f.get('stage', '?')}): {f.get('why', 'not run')}. The phone's packs "
+              f"passed and are published as usual; publish leaves the published comma.json as it is and ends as "
+              f"failed after publishing.", flush=True)
 
 
 # ------------------------------------------------------------------ publish
@@ -790,11 +1126,13 @@ USDOT National Address Database (public domain), and the City of Scranton GIS (P
 this repository."""
 
 
-def release_notes(entry: dict) -> str:
+def release_notes(entry: dict, with_comma: bool = True) -> str:
     sizes = ", ".join(f"{p['name']} {p['bytes'] / 1e6:.1f} MB" for p in entry["parts"])
+    comma = ("The comma parts (search-code.tar, roads.tar, mapd.tar) are read through comma.json of the same "
+             "release." if with_comma else "This build has no comma parts (its comma side failed).")
     return (f"{entry['name']} pack {entry['pack_version']}, OpenStreetMap data of {entry['osm_snapshot']}.\n\n"
             f"Parts as installed: {sizes}. The app reads them through the catalog (release 'catalog'); "
-            f"file formats: README.\n\n{LICENCE_NOTES}\n")
+            f"file formats: README. {comma}\n\n{LICENCE_NOTES}\n")
 
 
 def gh(*args: str, capture: bool = False) -> str:
@@ -804,9 +1142,122 @@ def gh(*args: str, capture: bool = False) -> str:
     return r.stdout if capture else ""
 
 
-def release_files(entry: dict) -> list[Path]:
+COMMA_FILE_PATH = re.compile(r"^\.\./(us-[a-z]{2}-\d{12})/[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def comma_problem(cat: dict, data: bytes) -> str | None:
+    """Why this comma.json (its bytes) may not be published beside this catalog.json; None when it may:
+    its format, exactly one entry per pack build of catalog.json, and every file it names inside its own
+    build's release folder of data/out/site with the size and SHA-256 comma.json gives."""
+    try:
+        comma = json.loads(data.decode("utf-8"))
+    except ValueError as e:
+        return f"comma.json is not JSON ({e})"
+    if not (isinstance(comma, dict) and comma.get("format") == COMMA_FORMAT and isinstance(comma.get("packs"), list)
+            and isinstance(comma.get("serial"), int)):
+        return f"comma.json is not {COMMA_FORMAT}"
+    want = sorted(f"{e['id']}-{e['pack_version']}" for e in cat["packs"])
+    have = []
     site = OUT / "site" / "catalog"
-    return [(site / p).resolve() for p in [entry["manifest"]["path"]] + [q["transfer"]["path"] for q in entry["parts"]]]
+    for e in comma["packs"]:
+        if not (isinstance(e, dict) and isinstance(e.get("parts"), list) and e["parts"]):
+            return "comma.json has a pack without parts"
+        tag = f"{e.get('id')}-{e.get('pack_version')}"
+        have.append(tag)
+        for q in e["parts"]:
+            t = q.get("transfer") if isinstance(q, dict) else None
+            p = t.get("path") if isinstance(t, dict) else None
+            m = COMMA_FILE_PATH.match(p) if isinstance(p, str) else None
+            if not m or m.group(1) != tag:
+                return f"comma.json names {p!r} for {tag}, outside its release"
+            f = site / p
+            if not f.is_file():
+                return f"{p[3:]} is missing from data/out/site"
+            if f.stat().st_size != t.get("bytes") or sha256_file(f) != t.get("sha256"):
+                return f"{p[3:]}: its size or SHA-256 is not the one comma.json gives"
+    if sorted(have) != want:
+        return f"comma.json names the builds {sorted(have)}, catalog.json {want}"
+    return None
+
+
+def comma_to_publish(run: dict, cat: dict) -> tuple[dict | None, str]:
+    """(comma.json, "") when this run's comma side may be published, else (None, why not). It may only
+    when run.json records the comma side as passed, data/out/site/catalog/comma.json is the very file
+    the run checked (its size and SHA-256 in run.json) and every file it names still has the size and
+    SHA-256 it gives (comma_problem): a later manual publish never publishes what failed its check."""
+    c = run.get("comma") or {}
+    if c.get("ok") is not True:
+        f = c.get("failed") or {}
+        return None, (f"the run's comma side failed ({f.get('stage', '?')}): {f.get('why', '')}" if f
+                      else "run.json records no passed comma side")
+    path = OUT / "site" / "catalog" / "comma.json"
+    if not path.is_file():
+        return None, "data/out/site/catalog/comma.json is missing"
+    data = path.read_bytes()
+    rec = c.get("comma_json") or {}
+    if len(data) != rec.get("bytes") or hashlib.sha256(data).hexdigest() != rec.get("sha256"):
+        return None, "data/out/site/catalog/comma.json is not the comma.json the run checked (run.json)"
+    why = comma_problem(cat, data)
+    if why:
+        return None, why
+    return json.loads(data.decode("utf-8")), ""
+
+
+def comma_packs_of(path: Path) -> list | None:
+    """The packs a published comma.json names ([] when there is no such file); None when it cannot be read."""
+    if not path.exists():
+        return []
+    try:
+        packs = json.loads(path.read_text(encoding="utf-8")).get("packs")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return [p for p in packs if isinstance(p, dict)] if isinstance(packs, list) else None
+
+
+def published_comma_github() -> list | None:
+    """The packs of the comma.json the "catalog" release holds now ([] when it holds none); None when
+    it cannot be read."""
+    r = subprocess.run(["gh", "release", "view", "catalog", "--json", "assets"], capture_output=True, text=True)
+    if r.returncode != 0:
+        return [] if "release not found" in (r.stderr or "").lower() else None
+    try:
+        if not any(x.get("name") == "comma.json" for x in json.loads(r.stdout)["assets"]):
+            return []
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return None
+    tmp = DATA / "store-tmp" / "published-comma"
+    remove(tmp)
+    tmp.mkdir(parents=True)
+    d = subprocess.run(["gh", "release", "download", "catalog", "--pattern", "comma.json", "--dir", str(tmp),
+                        "--clobber"], capture_output=True, text=True)
+    if d.returncode != 0 or not (tmp / "comma.json").is_file():
+        return None
+    return comma_packs_of(tmp / "comma.json")
+
+
+def release_files(entry: dict, comma: dict | None) -> list[Path]:
+    """The files of one pack build's release: the phone catalog's (manifest.json and the parts) and,
+    when this run's comma side is published (comma_to_publish), the comma catalog's parts of the same
+    build (the parts the two share are the very same files)."""
+    site = OUT / "site" / "catalog"
+    tag = f"{entry['id']}-{entry['pack_version']}"
+    paths = [entry["manifest"]["path"]] + [q["transfer"]["path"] for q in entry["parts"]]
+    if comma is not None:  # comma_to_publish has checked these already; kept as a second guard
+        ce = next((c for c in comma.get("packs", []) if c.get("id") == entry["id"]
+                   and c.get("pack_version") == entry["pack_version"]), None)
+        if ce is None:
+            raise SystemExit(f"comma.json has no entry for {tag}: nothing is published")
+        for q in ce["parts"]:
+            p = q["transfer"]["path"]
+            if not p.startswith(f"../{tag}/"):
+                raise SystemExit(f"comma.json names {p} for {tag}, outside its release: nothing is published")
+            if p not in paths:
+                paths.append(p)
+    files = [(site / p).resolve() for p in paths]
+    missing = [f.name for f in files if not f.is_file()]
+    if missing:
+        raise SystemExit(f"{tag}: {', '.join(missing)} missing from data/out/site: nothing is published")
+    return files
 
 
 def cmd_publish(a) -> None:
@@ -814,21 +1265,34 @@ def cmd_publish(a) -> None:
     if not run.get("checks_passed"):
         raise SystemExit("the last run's checks did not all pass (data/out/run.json): nothing is published")
     cat_path = OUT / "site" / "catalog" / "catalog.json"
+    comma_path = OUT / "site" / "catalog" / "comma.json"
     cat = json.loads(cat_path.read_text(encoding="utf-8"))
+    # The comma side is published only when the run recorded it as passed and its files are still the
+    # ones comma.json gives; otherwise the phone's side is published exactly as if there were no comma
+    # side, the published comma.json stays with every build it names, and publish ends as failed.
+    comma, comma_why = comma_to_publish(run, cat)
+    if comma is None:
+        print(f"== the comma side is NOT published: {comma_why}\n   The phone's packs and catalog.json are "
+              f"published as usual; the published comma.json stays as it is and no build it names is deleted.",
+              flush=True)
+    files_of = {f"{e['id']}-{e['pack_version']}": release_files(e, comma) for e in cat["packs"]}
     keep = int(CONFIG["keep_builds"])
     published = []
     if a.github:
+        # the builds kept besides catalog.json's: this run's comma.json's, or, when it is not published,
+        # those of the comma.json comma devices read now (None: not known, so nothing is deleted)
+        protect = comma["packs"] if comma is not None else published_comma_github()
         existing = {r["tagName"]: r for r in json.loads(gh("release", "list", "--limit", "500", "--json",
                                                            "tagName,isDraft", capture=True))}
         for e in cat["packs"]:
             tag = f"{e['id']}-{e['pack_version']}"
-            files = release_files(e)
+            files = files_of[tag]
             if tag in existing and not existing[tag]["isDraft"]:
                 raise SystemExit(f"release {tag} exists already: a published build is never rebuilt")
             if tag in existing:
                 gh("release", "delete", tag, "--yes")
             notes = OUT / f"notes-{tag}.md"
-            notes.write_text(release_notes(e), encoding="utf-8")
+            notes.write_text(release_notes(e, comma is not None), encoding="utf-8")
             gh("release", "create", tag, "--draft", "--title", f"{e['name']} {e['pack_version']}",
                "--notes-file", str(notes), "--target", os.environ.get("GITHUB_SHA", "main"))
             gh("release", "upload", tag, *map(str, files))
@@ -845,7 +1309,8 @@ def cmd_publish(a) -> None:
             if subprocess.run(["gh", "release", "view", "catalog"], capture_output=True).returncode != 0:
                 gh("release", "create", "catalog", "--title", "Catalog", "--notes",
                    "catalog.json: the list of the newest pack of every state, read by the app "
-                   "(format beamline-catalog/1, README). " + LICENCE_NOTES, "--target",
+                   "(format beamline-catalog/1, README); comma.json: the same packs for a comma device "
+                   "(format beamline-comma-catalog/1, README). " + LICENCE_NOTES, "--target",
                    os.environ.get("GITHUB_SHA", "main"))
             gh("release", "upload", "catalog", str(cat_path), "--clobber")
         except SystemExit:
@@ -854,15 +1319,23 @@ def cmd_publish(a) -> None:
             for tag in published:
                 subprocess.run(["gh", "release", "edit", tag, "--draft=true"])
             raise
+        # comma.json after catalog.json, in a call of its own: if it fails, the phone's catalog stays
+        # published and no build is deleted (what the catalog release holds as comma.json is not known)
+        if comma is not None:
+            try:
+                gh("release", "upload", "catalog", str(comma_path), "--clobber")
+            except SystemExit as e:
+                comma, comma_why, protect = None, f"the upload of comma.json failed ({e})", None
         # builds older than the newest `keep` of each state
         tags = [r["tagName"] for r in json.loads(gh("release", "list", "--limit", "500", "--json",
                                                      "tagName,isDraft", capture=True)) if not r["isDraft"]]
-        deleted = prune_list(tags, keep, cat)
+        deleted = prune(tags, keep, cat, protect)
         for t in deleted:
             gh("release", "delete", t, "--yes", "--cleanup-tag")
         store = Store(a.store, a.store_release)
     else:
         dest = Path(a.local).expanduser().resolve()
+        protect = comma["packs"] if comma is not None else comma_packs_of(dest / "catalog" / "comma.json")
         for e in cat["packs"]:
             tag = f"{e['id']}-{e['pack_version']}"
             d = dest / tag
@@ -871,29 +1344,65 @@ def cmd_publish(a) -> None:
             tmp = dest / f".{tag}.part"
             remove(tmp)
             tmp.mkdir(parents=True)
-            for f in release_files(e):
+            for f in files_of[tag]:
                 shutil.copyfile(f, tmp / f.name)
-            (tmp / "RELEASE-NOTES.md").write_text(release_notes(e), encoding="utf-8")
+            (tmp / "RELEASE-NOTES.md").write_text(release_notes(e, comma is not None), encoding="utf-8")
             tmp.rename(d)
             published.append(tag)
         (dest / "catalog").mkdir(parents=True, exist_ok=True)
-        tmp = dest / "catalog" / "catalog.json.part"
-        shutil.copyfile(cat_path, tmp)
-        tmp.replace(dest / "catalog" / "catalog.json")
-        deleted = prune_list([p.name for p in dest.iterdir() if p.is_dir()], keep, cat)
+        for src in [cat_path] + ([comma_path] if comma is not None else []):
+            tmp = dest / "catalog" / (src.name + ".part")
+            shutil.copyfile(src, tmp)
+            tmp.replace(dest / "catalog" / src.name)
+        deleted = prune([p.name for p in dest.iterdir() if p.is_dir()], keep, cat, protect)
         for t in deleted:
             shutil.rmtree(dest / t)
         store = Store(a.store, a.store_release)
     saved = save_inputs(store)
-    run["published"] = {"releases": published, "catalog_serial": cat["serial"], "deleted": deleted,
-                        "inputs_saved": saved, "utc": iso(now_utc())}
+    run["published"] = {"releases": published, "catalog_serial": cat["serial"], "comma_published": comma is not None,
+                        "comma_serial": comma["serial"] if comma is not None else None,
+                        "deleted": deleted, "inputs_saved": saved, "utc": iso(now_utc())}
+    if comma is None:
+        run["published"]["comma_not_published"] = comma_why
     save_run(run)
     print(json.dumps(run["published"], indent=1))
+    if comma is None:
+        raise SystemExit(f"THE COMMA SIDE FAILED: {comma_why}. The phone's packs and catalog.json were published; "
+                         f"comma.json was not, and the one published before stays with every build it names. "
+                         f"Logs: data/out/logs, data/out/run.json.")
+
+
+def prune(tags: list[str], keep: int, cat: dict, protect: list | None) -> list[str]:
+    """prune_list over catalog.json's builds and the protected comma.json's; nothing when the latter is
+    not known (None)."""
+    if protect is None:
+        print("== no build is deleted this time: the published comma.json could not be read, and nothing it "
+              "names may be deleted", flush=True)
+        return []
+    return prune_list(tags, keep, {"packs": cat["packs"] + protect})
+
+
+def named_builds(cat: dict) -> set[str]:
+    """The pack builds a catalog (catalog.json or comma.json) names: each entry's id-version and the
+    release folder of every file it names (../<tag>/<file>)."""
+    out = set()
+    for p in cat.get("packs", []):
+        if not isinstance(p, dict):
+            continue
+        if "id" in p and "pack_version" in p:
+            out.add(f"{p['id']}-{p['pack_version']}")
+        for q in [p.get("manifest")] + list(p.get("parts") or []):
+            t = q.get("transfer", q) if isinstance(q, dict) else None
+            path = t.get("path") if isinstance(t, dict) else None
+            m = re.match(r"^\.\./([^/]+)/", path) if isinstance(path, str) else None
+            if m:
+                out.add(m.group(1))
+    return out
 
 
 def prune_list(tags: list[str], keep: int, cat: dict) -> list[str]:
     """Pack release tags beyond the newest `keep` of each pack id; never one the catalog names."""
-    named = {f"{p['id']}-{p['pack_version']}" for p in cat["packs"]}
+    named = named_builds(cat)
     by_id: dict[str, list[tuple[int, str]]] = {}
     for t in tags:
         m = PACK_TAG.match(t)
@@ -904,6 +1413,18 @@ def prune_list(tags: list[str], keep: int, cat: dict) -> list[str]:
         lst.sort(reverse=True)
         out += [t for _, t in lst[keep:] if t not in named]
     return sorted(out)
+
+
+def cmd_comma_status(_a) -> None:
+    """Exit 1 with a plain message when the last run's comma side did not pass: the workflow's last
+    step, so a failed comma side fails the run also when nothing is published."""
+    c = load_run().get("comma") or {}
+    if c.get("ok") is True:
+        print("the comma side of the last run passed")
+        return
+    f = c.get("failed") or {}
+    raise SystemExit(f"THE COMMA SIDE FAILED ({f.get('stage', 'not run')}): {f.get('why', 'the run did not reach it')}. "
+                     f"The phone's packs are not held back by it; the published comma.json stays as it was.")
 
 
 def cmd_cleanup_drafts(_a) -> None:
@@ -933,8 +1454,10 @@ def main() -> None:
     g.add_argument("--github", action="store_true")
     g.add_argument("--local", help="a folder laid out like GitHub Releases")
     sub.add_parser("cleanup-drafts")
+    sub.add_parser("comma-status")
     a = ap.parse_args()
-    {"setup": cmd_setup, "run": cmd_run, "publish": cmd_publish, "cleanup-drafts": cmd_cleanup_drafts}[a.cmd](a)
+    {"setup": cmd_setup, "run": cmd_run, "publish": cmd_publish, "cleanup-drafts": cmd_cleanup_drafts,
+     "comma-status": cmd_comma_status}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -61,7 +61,9 @@ jobs:
       - name: System packages (GitHub's runner; a self-hosted runner has them already)
         if: runner.environment == 'github-hosted'
         # The runner's own JAVA_HOME is Java 17; the map profile needs 21 or newer, so the JDK that
-        # setup_ubuntu.sh installs is put first for the steps after this one.
+        # setup_ubuntu.sh installs is put first for the steps after this one. The script also installs
+        # what Mapd's build needs (gcc, pkg-config, zlib1g-dev: the comma files), the same on a
+        # self-hosted runner or a local machine.
         run: |
           sudo sh build/setup_ubuntu.sh
           JDK=/usr/lib/jvm/java-25-openjdk-amd64
@@ -86,8 +88,15 @@ jobs:
         run: python3 build/weekly.py run --store-release inputs ${{ inputs.allow_smaller && '--allow-smaller' || '' }}
 
       - name: Publish
+        # A failed comma side never holds the phone's packs back: they and catalog.json are published,
+        # comma.json is not (the published one stays), and this step then ends as failed.
         if: github.event_name == 'schedule' || inputs.publish
         run: python3 build/weekly.py publish --github --store-release inputs
+
+      - name: Comma side
+        # Fails the run when the comma side failed and Publish did not run ("publish" off); after a
+        # Publish that ran, it has nothing to add.
+        run: python3 build/weekly.py comma-status
 
       - name: Remove unpublished drafts
         if: failure()

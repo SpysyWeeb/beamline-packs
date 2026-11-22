@@ -19,6 +19,13 @@ The packs contain information from OpenStreetMap, which is made available here u
 
 The Beamline app shows the credit of the parts installed on every map screen.
 
+The comma files of a pack build are made from the same OpenStreetMap data and carry the same licence
+and credit: `roads.tar` (StarPilot's road-line tiles, cut from the pack's map: a Produced Work) and
+`mapd.tar` (the roads in Mapd's format, made from the same extract by Mapd's own generator: a
+Derivative Database). `search-code.tar` is Beamline's own search code (MIT, `LICENSE`). Mapd
+(StarPilot's `mapd_repo`, MIT) and Go run at build time only; nothing of their code is in a file
+published here. `comma.json` names a pyvalhalla wheel (MIT) that a device fetches from PyPI itself.
+
 ## House numbers (the optional addresses part)
 
 - **U.S. Census Bureau, TIGER/Line Shapefiles 2026** (address ranges, county subdivisions) and the
