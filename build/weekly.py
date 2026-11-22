@@ -282,6 +282,14 @@ class Store:
         subprocess.run(["gh", "release", "upload", self.release, str(staged), "--clobber"], check=True)
 
 
+def store_delete(store: Store, name: str) -> None:
+    """One asset out of the store (an older kept extract)."""
+    if store.folder:
+        (store.folder / name).unlink(missing_ok=True)
+        return
+    subprocess.run(["gh", "release", "delete-asset", store.release, name, "--yes"], check=True)
+
+
 INPUTS_NOTES = ("The slower-changing inputs of the weekly build, kept between runs so that a run does not "
                 "download them from their publishers again (README, 'Inputs'). Not a pack: the app never "
                 "reads this release. Sources and licences: ATTRIBUTION.md.")
@@ -733,42 +741,143 @@ def fetch_dated(osm: Path, base: str, name: str) -> tuple[Path, str, str, list[s
     raise SystemExit(f"{name}: no dated extract of {base}/ qualifies either (tried: {'; '.join(tried) or 'none listed'})")
 
 
-def fetch_extracts(run: dict) -> str:
+def fetch_from_geofabrik(osm: Path, name: str) -> tuple[Path, str, dict]:
+    """One state's extract and .poly from Geofabrik: the latest, else the newest dated one that qualifies.
+    Returns (file, md5, what run.json records about its source); SystemExit when Geofabrik gives neither."""
+    base = geofabrik_dir(name)
+    latest = osm / f"{name}-latest.osm.pbf"
+    try:
+        md5 = fetch_checked(f"{base}/{name}-latest.osm.pbf", latest)
+        try:
+            osm_timestamp(latest)  # a file that matches its .md5 but has no readable map date is no use either
+        except subprocess.CalledProcessError as e:
+            raise SystemExit(f"{latest.name}: its header cannot be read ({e})") from None
+        path, rec = latest, {"source": "latest", "source_file": latest.name}
+    except SystemExit as e:
+        reason = str(e)
+        print(f"== {name}: the latest extract cannot be used ({reason}); looking for the newest dated extract "
+              f"of {base}/", flush=True)
+        remove(latest, latest.with_name(latest.name + ".part"), latest.with_name(latest.name + ".md5"))
+        try:
+            path, md5, ts, tried = fetch_dated(osm, base, name)
+        except SystemExit as e2:
+            raise SystemExit(f"{name}: the latest extract cannot be used ({reason}), and {e2}") from None
+        rec = {"source": "dated", "source_file": path.name, "fallback_reason": reason}
+        if tried:
+            rec["fallback_skipped"] = tried
+        print(f"== {name}: USING {path.name} (map date {ts}) instead of {latest.name}, because: {reason}"
+              + (f"; skipped first: {'; '.join(tried)}" if tried else ""), flush=True)
+    download(f"{base}/{name}.poly", osm / f"{name}.poly")
+    return path, md5, rec
+
+
+def kept_names(names: set[str], name: str) -> list[str]:
+    """The extracts of a state the store keeps ("extract-<name>-YYMMDD.osm.pbf"), newest first."""
+    rule = re.compile(rf"^extract-{re.escape(name)}-(\d{{6}})\.osm\.pbf$")
+    return sorted((n for n in names if rule.match(n)), reverse=True)
+
+
+def kept_extract(store: Store | None, osm: Path, name: str) -> tuple[Path, str, str]:
+    """The newest extract of the state the store keeps (save_extracts, after a published run), with its
+    .md5 and the state's .poly: it must match that .md5 and its map date (its header) must be at most
+    config "extract_fallback" "max_age_days" old. Returns (file, md5, header time)."""
+    if store is None:
+        raise SystemExit(f"{name}: there is no store to look in")
+    limit = float(CONFIG.get("extract_fallback", {}).get("max_age_days", 10))
+    names = store.names()
+    poly = f"extract-{name}.poly"
+    tried = []
+    for asset in kept_names(names, name):
+        if asset + ".md5" not in names or poly not in names:
+            tried.append(f"{asset} (its .md5 or {poly} is not kept)")
+            continue
+        dest = osm / asset[len("extract-"):]
+        md5p = dest.with_name(dest.name + ".md5")
+        store.get(asset + ".md5", md5p)
+        md5 = md5_of(md5p)
+        if not (dest.exists() and md5_file(dest) == md5):
+            store.get(asset, dest)
+        try:
+            if md5_file(dest) != md5:
+                raise SystemExit("its MD5 differs from its .md5")
+            ts = osm_timestamp(dest)
+        except (SystemExit, subprocess.CalledProcessError) as e:
+            tried.append(f"{asset} ({e})")
+            remove(dest, md5p)
+            continue
+        age = (now_utc() - header_time(ts)).total_seconds() / 86400
+        if age > limit:
+            tried.append(f"{asset} (map date {ts}, {age:.1f} days old, over the limit of {limit:g})")
+            remove(dest, md5p)
+            continue
+        store.get(poly, osm / f"{name}.poly")
+        return dest, md5, ts
+    raise SystemExit(f"{name}: the store keeps no usable extract (tried: {'; '.join(tried) or 'none kept'})")
+
+
+def save_extracts(store: Store, run: dict) -> list[str]:
+    """After a published run: each state's extract, its .md5 and its .poly are kept in the store (one
+    extract per state: older ones are dropped), for a week when Geofabrik cannot be reached (kept_extract).
+    An extract that came from the store is there already. Returns the names saved."""
+    osm = DATA / "osm"
+    names = store.names()
+    saved = []
+    for st, e in sorted((run.get("extracts") or {}).items()):
+        name = CONFIG["state_info"][st]["geofabrik"]
+        asset = "extract-" + e["file"]
+        src, poly = osm / e["file"], osm / f"{name}.poly"
+        if e.get("source") == "store" or (asset in names and asset + ".md5" in names):
+            continue
+        if not (src.is_file() and poly.is_file()):
+            print(f"== {name}: the extract is not kept in the store ({src.name} or {poly.name} is gone)", flush=True)
+            continue
+        tmp = DATA / "store-tmp"
+        tmp.mkdir(parents=True, exist_ok=True)
+        md5p = tmp / (asset + ".md5")
+        md5p.write_text(f"{e['md5']}  {e['file']}\n", encoding="utf-8")
+        store.put(asset, src)
+        store.put(asset + ".md5", md5p)
+        store.put(f"extract-{name}.poly", poly)
+        md5p.unlink(missing_ok=True)
+        for old in kept_names(names, name):
+            if old != asset:
+                for n in (old, old + ".md5"):
+                    if n in names:
+                        store_delete(store, n)
+        saved.append(asset)
+    if saved:
+        print(f"== extracts kept in the store: {saved}", flush=True)
+    return saved
+
+
+def fetch_extracts(run: dict, store: Store | None = None) -> str:
     """This week's Geofabrik extract of every state (MD5 checked) and its .poly. When the latest extract
     cannot be downloaded (after download's retries) or never matches its .md5, the newest dated extract
-    of the same folder that qualifies is used instead (fetch_dated), said plainly in the log and in
-    run.json ("extracts" of the state: "source", "source_file", "fallback_reason"). Returns the
-    snapshot YYMMDD (the date of the extracts' replication timestamp, from each file's header); every
-    state must share it."""
+    of the same folder that qualifies is used instead (fetch_dated); when Geofabrik gives nothing usable
+    at all, the extract the store keeps from the last published run (kept_extract). Which one, and why,
+    is said plainly in the log and in run.json ("extracts" of the state: "source", "source_file",
+    "fallback_reason"). Returns the snapshot YYMMDD (the date of the extracts' replication timestamp,
+    from each file's header); every state must share it."""
     osm = DATA / "osm"
     t0 = time.time()
     got = {}
     for st in states():
         name = CONFIG["state_info"][st]["geofabrik"]
-        base = geofabrik_dir(name)
-        latest = osm / f"{name}-latest.osm.pbf"
         try:
-            md5 = fetch_checked(f"{base}/{name}-latest.osm.pbf", latest)
-            try:
-                osm_timestamp(latest)  # a file that matches its .md5 but has no readable map date is no use either
-            except subprocess.CalledProcessError as e:
-                raise SystemExit(f"{latest.name}: its header cannot be read ({e})") from None
-            path, rec = latest, {"source": "latest", "source_file": latest.name}
+            path, md5, rec = fetch_from_geofabrik(osm, name)
         except SystemExit as e:
+            # Geofabrik gave nothing usable (in November 2026 its server could not be reached from GitHub's
+            # runners for hours): the extract the store keeps from the last published run, under the same
+            # age limit. A run from the same extract builds the same map with this week's builders.
             reason = str(e)
-            print(f"== {name}: the latest extract cannot be used ({reason}); looking for the newest dated extract "
-                  f"of {base}/", flush=True)
-            remove(latest, latest.with_name(latest.name + ".part"), latest.with_name(latest.name + ".md5"))
+            print(f"== {name}: nothing usable from Geofabrik ({reason}); looking in the store", flush=True)
             try:
-                path, md5, ts, tried = fetch_dated(osm, base, name)
+                path, md5, ts = kept_extract(store, osm, name)
             except SystemExit as e2:
-                raise SystemExit(f"{name}: the latest extract cannot be used ({reason}), and {e2}") from None
-            rec = {"source": "dated", "source_file": path.name, "fallback_reason": reason}
-            if tried:
-                rec["fallback_skipped"] = tried
-            print(f"== {name}: USING {path.name} (map date {ts}) instead of {latest.name}, because: {reason}"
-                  + (f"; skipped first: {'; '.join(tried)}" if tried else ""), flush=True)
-        download(f"{base}/{name}.poly", osm / f"{name}.poly")
+                raise SystemExit(f"{reason}; and {e2}") from None
+            rec = {"source": "store", "source_file": "extract-" + path.name, "fallback_reason": reason}
+            print(f"== {name}: USING the extract kept in the store, {path.name} (map date {ts}), because: {reason}",
+                  flush=True)
         ts = osm_timestamp(path)
         got[st] = (name, ts, md5, path, rec)
     days = {v[1][:10] for v in got.values()}
@@ -1109,7 +1218,7 @@ def cmd_run(a) -> None:
            "checks_passed": False, "comma": {"ok": None}}
     save_run(run)
     idx = restore_inputs(run, store)
-    fetch_extracts(run)
+    fetch_extracts(run, store)
     refresh_inputs(run, idx)
     parts = build_parts(run, a.keep_work)
     assemble(run, parts, a.keep_work)
@@ -1376,6 +1485,10 @@ def cmd_publish(a) -> None:
             shutil.rmtree(dest / t)
         store = Store(a.store, a.store_release)
     saved = save_inputs(store)
+    try:
+        saved += save_extracts(store, run)
+    except (OSError, subprocess.CalledProcessError) as e:  # the packs are published; next week's safety net is not worth a failed run
+        print(f"== the extracts could not be kept in the store ({type(e).__name__}: {e})", flush=True)
     run["published"] = {"releases": published, "catalog_serial": cat["serial"], "comma_published": comma is not None,
                         "comma_serial": comma["serial"] if comma is not None else None,
                         "deleted": deleted, "inputs_saved": saved, "utc": iso(now_utc())}

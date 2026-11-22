@@ -85,7 +85,10 @@ One job on GitHub's standard Linux runner (`.github/workflows/weekly.yml`), one 
    pointed at a missing file for more than a day), the newest dated extract of the same folder
    (`<state>-YYMMDD.osm.pbf`) that matches its own MD5 is used, if its map date is at most 10 days old
    (`build/config.json` "extract_fallback"); the run's log, its summary and `run.json` say which file
-   was used and why. The slower-changing
+   was used and why. After every published run the extract itself is kept in the `inputs` release
+   (`extract-<state>-YYMMDD.osm.pbf`, one per state); when Geofabrik gives nothing usable at all (its
+   server could not be reached from GitHub's runners for hours that same month), that kept extract is
+   used under the same age limit. The slower-changing
    inputs come from the `inputs` release; each is fetched from its publisher again only when the
    publisher has a newer file and the kept copy is at least four weeks old (water and land polygons,
    Natural Earth, QRank), or never (the Census, TIGER/Line and NAD files and the time zones, which

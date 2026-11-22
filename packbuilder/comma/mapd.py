@@ -82,7 +82,10 @@ def go_platform() -> str:
 
 
 def go_version_of(goroot: Path) -> str:
-    r = subprocess.run([str(goroot / "bin" / "go"), "version"], capture_output=True, text=True)
+    try:
+        r = subprocess.run([str(goroot / "bin" / "go"), "version"], capture_output=True, text=True)
+    except OSError:  # no Go there (yet)
+        return ""
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
