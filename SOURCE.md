@@ -3,5 +3,5 @@
 This repository is exported from the Beamline app repository by its `tools/export_packs_repo.py`.
 **Do not edit files here: edit them in the app repository and export again.**
 
-- App repository commit: `724783a822b36b0c5b7a82561446b3bbb04a3fa6`
+- App repository commit: `2e3951c41466857dc7ed53f24ecc1a48809fa21c`
 - Files: 102 (this one included)

@@ -516,6 +516,11 @@ def setup_comma(run: dict) -> bool:
     tmp.write_text(json.dumps(rec, indent=1) + "\n", encoding="utf-8")
     tmp.replace(COMMA_SETUP)
     if not rec["ok"]:
+        if log.is_file():  # the log itself is not among a failed run's kept files unless the build got that far
+            tail = log.read_text(encoding="utf-8", errors="replace").splitlines()[-40:]
+            print("   the end of setup-mapd.log:", flush=True)
+            for line in tail:
+                print("   | " + line[:300], flush=True)
         print(f"== COMMA SIDE: the setup of Mapd's generator failed ({rec['error']}). The phone's packs are built "
               f"and published as usual; this week's comma files and comma.json are not (the published comma.json "
               f"stays), and the run ends as failed after publishing.", flush=True)
@@ -617,7 +622,9 @@ def url_exists(url: str) -> bool:
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=UA, method="HEAD"), timeout=60):
             return True
-    except OSError:
+    except OSError as e:
+        if getattr(e, "code", None) != 404:  # "not there" is an answer; anything else is worth a line in the log
+            print(f"   {url}: {type(e).__name__}: {e}", flush=True)
         return False
 
 
@@ -633,7 +640,8 @@ def dated_extracts(folder: str, name: str) -> list[str]:
     the folder's address). [] when the listing cannot be read."""
     try:
         page = fetch_text(folder + "/")
-    except OSError:
+    except OSError as e:
+        print(f"   {folder}/: the listing cannot be read ({type(e).__name__}: {e})", flush=True)
         return []
     rule = re.compile(rf"^{re.escape(name)}-(\d{{6}})\.osm\.pbf$")
     found = set()
