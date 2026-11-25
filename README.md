@@ -34,8 +34,8 @@ The catalog's address is `https://github.com/<owner>/beamline-packs/releases/dow
 it names every file by a path relative to itself (`../us-pa-202611230917/map.pmtiles`), the layout of
 GitHub Releases. A published release is never rebuilt: a newer build is a new release.
 
-While this repository is private, release files need a GitHub login to download, so the app cannot
-fetch them yet. To put a build on a phone by hand: `gh release download us-pa-<version> --dir pa`,
+The app reads the catalog and downloads the packs from these releases (no login: the repository is
+public). To put a build on a phone by hand instead: `gh release download us-pa-<version> --dir pa`,
 then `python3 build/release_to_archive.py pa` writes `us-pa-<date>.tar` (every part checked), the
 file the app's "Use a file instead" reads.
 

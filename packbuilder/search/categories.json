@@ -1,470 +1,7951 @@
 {
-  "_doc": [
-    "Everyday categories for a driver. Read at build time (tag rules -> which POIs belong to which category) and copied into the search database (terms -> category) so the device only needs the database.",
-    "match: a list of rules; a POI belongs to the category if ANY rule holds. A rule holds if ALL its entries hold.",
-    "  \"key\": \"value\"      tag equals value",
-    "  \"key\": [\"a\", \"b\"]   tag is one of the values",
-    "  \"key\": \"*\"          tag present with any value other than \"no\"",
-    "  \"key~\": \"regex\"     tag value matches the regex (case-insensitive, Python re.search)",
-    "  \"!key\": value/list/*  the negation of the same test",
-    "terms: everyday US words written for this project; a term written as [\"word\", 0.8] has a lower weight (the category is offered, but ranks below categories where the word weighs 1.0). Extra words copied from the iD tagging schema (see attribution) live in the generated file categories_idterms.json, made by seed_categories.py from the presets in id_presets, minus id_terms_exclude and the global exclude list. Never edit that file by hand.",
-    "unnamed: true lets unnamed, unbranded POIs of this category into the index (shown with the category label as title). Other categories need a name or brand.",
-    "facet: true marks a property of a POI that already has a better primary category (diesel at a gas station): searchable, never the displayed category.",
-    "umbrella: true means the category groups others (e.g. food) and is never shown as a POI's primary category. The primary category of a POI is the first non-umbrella category in file order that matches, so more specific categories come first.",
-    "pa: true marks Pennsylvania-specific categories.",
-    "in_park: true (named natural places a driver heads to: beaches, waterfalls, caves, peaks): such a POI inside named parks, nature reserves or protected areas (up to the three smallest that hold it) is also found as '<park> <label>' and '<park> <name>', with the park's name as written and without a trailing 'State Park', 'Park', ... (build.py PARK_SUFFIXES): 'presque isle beach' finds the beaches of Presque Isle State Park. Natural objects need a rule here to be kept at all: osm_extract.py keeps only the natural=* and waterway=* values these rules name."
-  ],
-  "attribution": "The words in categories_idterms.json (id_terms) are copied from the iD tagging schema, @openstreetmap/id-tagging-schema 7.3.0 (dist/translations/en.json: preset name, aliases and terms). Copyright (c) iD Contributors, ISC License, https://github.com/openstreetmap/id-tagging-schema/blob/main/LICENSE.md . Nothing was taken from Organic Maps.",
-  "attribution_license": "ISC License\n\nCopyright (c) iD Contributors\n\nPermission to use, copy, modify, and/or distribute this software for any\npurpose with or without fee is hereby granted, provided that the above\ncopyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH\nREGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY\nAND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,\nINDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM\nLOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR\nOTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR\nPERFORMANCE OF THIS SOFTWARE.\n",
-  "id_schema": {"package": "@openstreetmap/id-tagging-schema", "version": "7.3.0", "file": "dist/translations/en.json", "sha256": "f5a5dad8ac5d12f18559fac9d0383fcfeb89abc26ddfeffb1c4699315f583c47"},
-  "id_terms_exclude_global": ["dine", "dining", "eat", "table", "canteen", "drive-in", "grill", "station", "terminal", "track", "transit", "transportation", "public transit", "public transportation", "shop", "store", "service", "machine", "safe", "stock", "fund", "trust", "reserve", "check", "repository", "treasury", "vault", "hall", "institution", "foundation", "place", "lot", "green", "grounds", "estate", "tract", "forest", "grass", "square", "plaza", "esplanade", "lawn", "meadow", "woodland", "fold", "mission", "head", "fed", "law", "badge", "show", "picture", "screen", "official", "public office", "city", "village", "government", "municipal", "camp", "hobby", "gift", "hair", "beauty", "tooth", "frozen", "rolls", "animal", "cat", "dog", "kitten", "puppy", "reptile", "tree", "shrub", "tank", "refill", "dive", "letter", "package", "parcel", "shipping", "phone", "radio", "video", "camera", "audio", "speaker", "tv", "dvd", "blueray", "computer", "sick", "surgery", "ward", "health", "leisure", "studio", "nature", "art", "science", "technology", "history", "cultural", "painting", "photograph", "sculpture", "exhibition", "gallery", "archaeological", "archeological", "excavation", "religion", "religious", "oratory", "sacellum", "chantry", "chancel", "minster", "bethel", "links", "film", "flick", "airplane", "jet", "plane", "aeroway", "wildlife", "protected", "elsan", "cdp", "ctdp", "chemical toilet", "sanitary", "camper", "campers", "caravans", "mobile homes", "motor home", "recreational vehicles", "rv", "camp pitch", "panel beater", "panelbeater", "craft", "athletics", "equestrian", "climbing", "mountaineering", "trekking", "mountain biking", "mile zero", "staging area", "trail endpoint", "trail start", "ballpark", "frank", "meat", "withdrawal", "deposit", "financial", "investment", "savings", "hire", "vehicle", "automobile", "automotive", "fun park", "lodging", "courthouse", "fresh food", "organics", "baked goods", "fruits", "vegetables", "orchard", "greengrocer", "bazaar", "home theater", "gadgets", "appliance", "bras", "underwear", "slacks", "socks", "airbnb", "backpacker", "bunk beds", "dormitories", "dorms", "concierge", "suite", "house of god", "fresh", "graduate school", "master's degree program", "phd program", "undergraduate school", "judicial", "justice", "constable", "constabulary", "detective", "enforcement", "officer", "patrol", "book", "reading", "columbarium", "mausoleum", "tomb", "scenery", "vantage point", "w.c.", "wc", "privy", "latrine", "outhouse", "medic", "pet clinic", "pet doctor", "sanatorium", "sanitarium", "infirmary", "dispensary", "apothecary", "cash and carry", "roadhouse", "takeaway", "food truck", "superette", "drip", "brew", "cocoa", "hot drinks", "tenting"],
-  "categories": [
-    {"id": "truck_stop", "unnamed": true, "label": "Truck stop", "group": "road",
-     "match": [{"amenity": "fuel", "brand~": "^(love'?s|pilot|flying j|ta|ta express|petro|travelcenters of america|travel centers of america|sapp bros|bosselman|petro stopping)"},
-               {"amenity": "fuel", "fuel:HGV_diesel": "yes"},
-               {"amenity": "fuel", "hgv": "designated"},
-               {"highway": "services", "hgv": ["yes", "designated"]}],
-     "terms": ["truck stop", "truckstop", "travel center", "travel centre", "truck fuel", "trucker", "semi fuel", "big rig"],
-     "id_presets": []},
-    {"id": "service_plaza", "unnamed": true, "label": "Service plaza", "group": "road",
-     "_doc": "Commercial truck stops mapped as highway=services (Love's, Pilot, Petro, TA, ...) are truck_stop only, so 'rest stop' / 'service plaza' find public rest areas and turnpike plazas first.",
-     "match": [{"highway": "services", "!hgv": ["yes", "designated"],
-                "!brand~": "^(love'?s|pilot|flying j|ta|ta express|petro|travelcenters of america|travel centers of america|sapp bros|bosselman|one9)\\b",
-                "!name~": "^(love'?s|pilot|flying j|ta|ta express|petro|travelcenters of america|travel centers of america|sapp bros|bosselman|one9)\\b"}],
-     "terms": ["service plaza", "travel plaza", "turnpike plaza", "turnpike service plaza", "service area", "services", ["rest stop", 0.8], ["rest area", 0.8]],
-     "id_presets": ["highway/services"], "id_terms_exclude": []},
-    {"id": "welcome_center", "unnamed": true, "label": "Welcome center", "group": "road", "pa": true,
-     "match": [{"highway": "rest_area", "name~": "welcome"},
-               {"tourism": "information", "name~": "welcome cent"}],
-     "terms": ["welcome center", "welcome centre", "state welcome center", "pa welcome center", ["rest stop", 0.9], ["rest area", 0.9]],
-     "id_presets": []},
-    {"id": "rest_area", "unnamed": true, "label": "Rest area", "group": "road",
-     "match": [{"highway": "rest_area"}],
-     "terms": ["rest area", "rest stop", "rest stops", "rest areas", "roadside rest", "pull off", "highway rest area", "interstate rest area", "rest room stop"],
-     "id_presets": ["highway/rest_area"]},
-    {"id": "toilets", "unnamed": true, "label": "Restroom", "group": "road",
-     "match": [{"amenity": "toilets"}, {"toilets": "yes", "highway": "rest_area"}],
-     "terms": ["restroom", "restrooms", "bathroom", "bathrooms", "toilet", "toilets", "public restroom", "public bathroom", "potty", "mens room", "ladies room", "comfort station", "porta potty"],
-     "id_presets": ["amenity/toilets"], "id_terms_exclude": []},
-    {"id": "diesel", "unnamed": true, "facet": true, "label": "Diesel", "group": "car",
-     "match": [{"amenity": "fuel", "fuel:diesel": "yes"}, {"amenity": "fuel", "fuel:HGV_diesel": "yes"}],
-     "terms": ["diesel", "diesel fuel", "diesel gas", "diesel station", "diesel pump"],
-     "id_presets": []},
-    {"id": "fuel", "unnamed": true, "label": "Gas station", "group": "car",
-     "match": [{"amenity": "fuel"}],
-     "terms": ["gas", "gas station", "gas stations", "gasoline", "fuel", "filling station", "petrol", "fill up", "gas pump", "service station", "unleaded", "e85", "ethanol free", "non ethanol"],
-     "id_presets": ["amenity/fuel"], "id_terms_exclude": []},
-    {"id": "ev_charging", "unnamed": true, "label": "EV charging", "group": "car",
-     "match": [{"amenity": "charging_station"}],
-     "terms": ["ev charger", "ev chargers", "ev charging", "ev charging station", "charging station", "electric car charger", "electric vehicle charging", "car charger", "ev station", "charger", "supercharger", "fast charger", "dc fast charger", "level 2 charger", "tesla charger", "plug in"],
-     "id_presets": ["amenity/charging_station"], "id_terms_exclude": []},
-    {"id": "propane", "unnamed": true, "label": "Propane", "group": "car",
-     "match": [{"shop": "gas"}, {"amenity": "fuel", "fuel:lpg": "yes"}],
-     "terms": ["propane", "propane refill", "propane exchange", "lpg", "bottled gas"],
-     "id_presets": ["shop/gas"], "id_terms_exclude": ["refill", "tank"]},
-    {"id": "car_wash", "unnamed": true, "label": "Car wash", "group": "car",
-     "match": [{"amenity": "car_wash"}],
-     "terms": ["car wash", "carwash", "auto wash", "touchless car wash", "self serve car wash"],
-     "id_presets": ["amenity/car_wash"]},
-    {"id": "oil_change", "label": "Oil change", "group": "car",
-     "match": [{"shop": "car_repair", "service:vehicle:oil_change": "yes"},
-               {"shop": "car_repair", "brand~": "jiffy lube|valvoline|take 5|grease monkey|express oil|quick lube"},
-               {"shop": "car_repair", "name~": "oil change|lube"}],
-     "terms": ["oil change", "quick lube", "lube", "oil and lube"],
-     "id_presets": []},
-    {"id": "vehicle_inspection", "label": "Vehicle inspection", "group": "car", "pa": true,
-     "match": [{"shop": "car_repair", "service:vehicle:inspection": "yes"},
-               {"shop": "car_repair", "name~": "inspection|emission"},
-               {"amenity": "vehicle_inspection"}],
-     "terms": ["state inspection", "inspection station", "car inspection", "vehicle inspection", "emissions", "emissions testing", "emissions test", "inspection sticker"],
-     "id_presets": []},
-    {"id": "car_repair", "label": "Auto repair", "group": "car",
-     "match": [{"shop": "car_repair"}],
-     "terms": ["auto repair", "car repair", "mechanic", "garage", "auto shop", "repair shop", "brakes", "muffler", "transmission repair", "auto service", "body shop", "collision repair"],
-     "id_presets": ["shop/car_repair"], "id_terms_exclude": []},
-    {"id": "tire_shop", "label": "Tire shop", "group": "car",
-     "match": [{"shop": "tyres"}],
-     "terms": ["tire shop", "tire store", "tires", "tire", "tire repair", "flat tire", "tyres", "new tires"],
-     "id_presets": ["shop/tyres"]},
-    {"id": "auto_parts", "label": "Auto parts", "group": "car",
-     "match": [{"shop": "car_parts"}],
-     "terms": ["auto parts", "car parts", "auto parts store", "parts store", "car battery", "wiper blades"],
-     "id_presets": ["shop/car_parts"]},
-    {"id": "car_dealer", "label": "Car dealer", "group": "car",
-     "match": [{"shop": "car"}],
-     "terms": ["car dealer", "car dealership", "dealership", "dealer", "auto dealer", "used cars", "new cars", "used car lot", "car lot"],
-     "id_presets": ["shop/car"]},
-    {"id": "car_rental", "label": "Car rental", "group": "car",
-     "match": [{"amenity": "car_rental"}],
-     "terms": ["car rental", "rental car", "rent a car", "rental cars", "truck rental"],
-     "id_presets": ["amenity/car_rental"]},
-    {"id": "park_and_ride", "unnamed": true, "label": "Park and ride", "group": "car",
-     "match": [{"amenity": "parking", "park_ride": "*"}],
-     "terms": ["park and ride", "park n ride", "park & ride", "commuter lot", "commuter parking"],
-     "id_presets": ["amenity/parking/park_ride"], "id_terms_exclude": ["p+r", "train parking lot", "metro parking lot", "incentive parking lot", "public transit parking lot", "public transport parking lot"]},
-    {"id": "truck_parking", "unnamed": true, "label": "Truck parking", "group": "road",
-     "match": [{"amenity": "parking", "hgv": ["designated", "yes"]}, {"highway": "rest_area", "hgv": ["designated", "yes"]}],
-     "terms": ["truck parking", "semi parking", "overnight truck parking"],
-     "id_presets": []},
-    {"id": "parking", "label": "Parking", "group": "car",
-     "match": [{"amenity": "parking", "!access": ["private", "no", "customers"]}, {"amenity": "parking_entrance", "!access": ["private", "no"]}],
-     "terms": ["parking", "parking lot", "parking garage", "parking deck", "car park", "public parking", "free parking", "parking ramp"],
-     "id_presets": ["amenity/parking"], "id_terms_exclude": ["rv parking", "truck parking"]},
-    {"id": "rv_dump", "unnamed": true, "label": "RV dump station", "group": "road",
-     "match": [{"amenity": "sanitary_dump_station"}, {"sanitary_dump_station": ["yes", "customers"]}],
-     "terms": ["rv dump", "rv dump station", "dump station", "sewage dump", "camper dump", "black water dump", "sani dump"],
-     "id_presets": ["amenity/sanitary_dump_station"], "id_terms_exclude": []},
-    {"id": "viewpoint", "unnamed": true, "label": "Scenic viewpoint", "group": "road",
-     "match": [{"tourism": "viewpoint"}],
-     "terms": ["viewpoint", "scenic overlook", "overlook", "scenic view", "lookout", "vista", "scenic vista", "view"],
-     "id_presets": ["tourism/viewpoint"]},
-    {"id": "picnic_site", "unnamed": true, "label": "Picnic area", "group": "road",
-     "match": [{"tourism": "picnic_site"}],
-     "terms": ["picnic area", "picnic site", "picnic", "picnic grove", "pavilion"],
-     "id_presets": ["tourism/picnic_site"]},
-
-    {"id": "food", "label": "Food", "group": "food", "umbrella": true,
-     "match": [{"amenity": ["restaurant", "fast_food", "cafe", "food_court"]}],
-     "terms": ["food", "eat", "place to eat", "places to eat", "somewhere to eat", "hungry", "lunch", "dinner", "meal", "dining", "food near me"],
-     "id_presets": ["amenity/food_court"]},
-    {"id": "coffee", "label": "Coffee", "group": "food",
-     "match": [{"amenity": "cafe"}, {"amenity": ["fast_food", "restaurant"], "cuisine~": "coffee"}],
-     "terms": ["coffee", "coffee shop", "coffee house", "cafe", "espresso", "latte", "cappuccino", "iced coffee"],
-     "id_presets": ["amenity/cafe", "amenity/cafe/coffee_shop"], "id_terms_exclude": []},
-    {"id": "donut", "label": "Donut shop", "group": "food",
-     "match": [{"amenity": ["fast_food", "cafe"], "cuisine~": "donut|doughnut"}, {"shop": "pastry", "cuisine~": "donut"}],
-     "terms": ["donut", "donuts", "doughnut", "doughnuts", "donut shop"],
-     "id_presets": ["amenity/fast_food/donut"]},
-    {"id": "pizza", "label": "Pizza", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "pizza"}],
-     "terms": ["pizza", "pizza place", "pizzeria", "pizza shop", "pizza delivery", "slice"],
-     "id_presets": ["amenity/restaurant/pizza", "amenity/fast_food/pizza"]},
-    {"id": "burger", "label": "Burgers", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "burger"}],
-     "terms": ["burger", "burgers", "hamburger", "hamburgers", "cheeseburger"],
-     "id_presets": ["amenity/fast_food/burger"]},
-    {"id": "chicken", "label": "Chicken", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "chicken|wings"}],
-     "terms": ["chicken", "fried chicken", "chicken wings", "wings", "chicken tenders", "chicken sandwich"],
-     "id_presets": ["amenity/fast_food/chicken"]},
-    {"id": "sandwich", "label": "Sandwiches and hoagies", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "sandwich|sub|hoagie|deli|cheesesteak"}, {"shop": "deli"}],
-     "terms": ["sandwich", "sandwiches", "sub", "subs", "hoagie", "hoagies", "sub shop", "deli", "cheesesteak", "cheesesteaks", "philly cheesesteak", "hoagie shop"],
-     "id_presets": ["amenity/fast_food/sandwich"]},
-    {"id": "chinese", "label": "Chinese", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "chinese"}],
-     "terms": ["chinese", "chinese food", "chinese restaurant", "chinese takeout"],
-     "id_presets": ["amenity/restaurant/chinese"]},
-    {"id": "mexican", "label": "Mexican", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "mexican|tex-mex|tex_mex|taco|burrito"}],
-     "terms": ["mexican", "mexican food", "mexican restaurant", "tacos", "taco", "burrito", "burritos"],
-     "id_presets": ["amenity/restaurant/mexican"]},
-    {"id": "italian", "label": "Italian", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "italian"}],
-     "terms": ["italian", "italian food", "italian restaurant", "pasta"],
-     "id_presets": ["amenity/restaurant/italian"]},
-    {"id": "asian", "label": "Japanese and sushi", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "japanese|sushi|hibachi|ramen"}],
-     "terms": ["sushi", "japanese", "japanese food", "hibachi", "ramen", "japanese restaurant"],
-     "id_presets": ["amenity/restaurant/japanese", "amenity/restaurant/sushi"]},
-    {"id": "seafood", "label": "Seafood", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "seafood|fish"}],
-     "terms": ["seafood", "fish", "seafood restaurant", "crab", "fish fry"],
-     "id_presets": ["amenity/restaurant/seafood"]},
-    {"id": "bbq", "label": "Barbecue and steak", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food"], "cuisine~": "barbecue|bbq|steak"}],
-     "terms": ["bbq", "barbecue", "barbeque", "steak", "steakhouse", "steak house", "smokehouse"],
-     "id_presets": ["amenity/restaurant/barbecue", "amenity/restaurant/steakhouse"]},
-    {"id": "breakfast", "label": "Breakfast and diners", "group": "food",
-     "match": [{"amenity": ["restaurant", "fast_food", "cafe"], "cuisine~": "breakfast|pancake|diner|brunch|waffle"}, {"amenity": "restaurant", "name~": "diner"}],
-     "terms": ["breakfast", "brunch", "diner", "diners", "pancakes", "pancake house", "breakfast place", "waffles"],
-     "id_presets": []},
-    {"id": "ice_cream", "label": "Ice cream", "group": "food",
-     "match": [{"amenity": "ice_cream"}, {"shop": "ice_cream"}, {"amenity": ["fast_food", "cafe", "restaurant"], "cuisine~": "ice_cream|frozen_yogurt|custard"}],
-     "terms": ["ice cream", "ice cream shop", "frozen custard", "custard", "soft serve", "frozen yogurt", "dairy bar", "creamery"],
-     "id_presets": ["amenity/ice_cream"]},
-    {"id": "bakery", "label": "Bakery", "group": "food",
-     "match": [{"shop": ["bakery", "pastry"]}],
-     "terms": ["bakery", "bakeries", "bake shop", "pastry", "pastries", "cupcakes"],
-     "id_presets": ["shop/bakery"]},
-    {"id": "fast_food", "label": "Fast food", "group": "food",
-     "match": [{"amenity": "fast_food"}],
-     "terms": ["fast food", "drive thru", "drive through", "drive-thru", "takeout", "take out", "quick food", "fast food restaurant"],
-     "id_presets": ["amenity/fast_food"], "id_terms_exclude": []},
-    {"id": "restaurant", "label": "Restaurant", "group": "food",
-     "match": [{"amenity": "restaurant"}],
-     "terms": ["restaurant", "restaurants", "sit down restaurant", "family restaurant", "dine in", "bar and grill", "eatery"],
-     "id_presets": ["amenity/restaurant"]},
-    {"id": "bar", "label": "Bar or pub", "group": "food",
-     "match": [{"amenity": ["bar", "pub", "biergarten"]}],
-     "terms": ["bar", "bars", "pub", "pubs", "tavern", "saloon", "sports bar", "drinks", "happy hour"],
-     "id_presets": ["amenity/bar", "amenity/pub"], "id_terms_exclude": []},
-    {"id": "brewery", "label": "Brewery", "group": "food",
-     "match": [{"craft": "brewery"}, {"microbrewery": "yes"}, {"industrial": "brewery", "name": "*"}],
-     "terms": ["brewery", "breweries", "brewpub", "brew pub", "craft beer", "taproom", "tap room", "microbrewery"],
-     "id_presets": ["craft/brewery"]},
-    {"id": "winery", "label": "Winery", "group": "food",
-     "match": [{"craft": "winery"}, {"shop": "winery"}, {"amenity": "winery"}],
-     "terms": ["winery", "wineries", "vineyard", "wine tasting", "tasting room"],
-     "id_presets": ["craft/winery"]},
-
-    {"id": "state_store", "label": "Fine Wine & Good Spirits (state store)", "group": "shop", "pa": true,
-     "match": [{"shop": ["alcohol", "wine"], "brand~": "fine wine"},
-               {"shop": ["alcohol", "wine"], "name~": "fine wine|wine (and|&) spirits|state store|premium collection"},
-               {"shop": ["alcohol", "wine"], "operator~": "liquor control board|plcb"}],
-     "terms": ["state store", "state stores", "liquor store", "fine wine and good spirits", "fine wine good spirits", "wine and spirits", "wine & spirits", "plcb", "pa liquor store", "liquor", "wine store", "wine shop", "spirits", "booze"],
-     "id_presets": []},
-    {"id": "beer_distributor", "label": "Beer distributor", "group": "shop", "pa": true,
-     "match": [{"shop": "beverages"},
-               {"shop": "alcohol", "name~": "beer|beverage|distribut|brew|six pack|6 pack", "!brand~": "fine wine"},
-               {"shop": "alcohol", "drink:beer": ["yes", "retail"], "!brand~": "fine wine", "!name~": "fine wine|wine (and|&) spirits"}],
-     "terms": ["beer distributor", "beer distributors", "beer store", "beer", "beer distributer", "beverage distributor", "case of beer", "six pack", "keg", "kegs", "beer barn"],
-     "id_presets": ["shop/beverages"], "id_terms_exclude": []},
-    {"id": "liquor", "label": "Liquor store", "group": "shop",
-     "match": [{"shop": ["alcohol", "wine"]}],
-     "terms": ["liquor store", "liquor", "alcohol", "booze", "package store", "bottle shop", "wine shop", "wine store"],
-     "id_presets": ["shop/alcohol", "shop/wine"], "id_terms_exclude": []},
-    {"id": "grocery", "label": "Grocery store", "group": "shop",
-     "match": [{"shop": ["supermarket", "grocery", "greengrocer"]}],
-     "terms": ["grocery", "groceries", "grocery store", "grocery stores", "supermarket", "supermarkets", "food store", "food market"],
-     "id_presets": ["shop/supermarket"], "id_terms_exclude": []},
-    {"id": "convenience", "label": "Convenience store", "group": "shop",
-     "match": [{"shop": "convenience"}],
-     "terms": ["convenience store", "convenience", "mini mart", "minimart", "quick mart", "corner store", "c store", "snacks", "quick stop", "gas station store"],
-     "id_presets": ["shop/convenience"], "id_terms_exclude": []},
-    {"id": "pharmacy", "label": "Pharmacy", "group": "shop",
-     "match": [{"amenity": "pharmacy"}, {"shop": "chemist"}, {"healthcare": "pharmacy"}],
-     "terms": ["pharmacy", "pharmacies", "drugstore", "drug store", "prescriptions", "prescription", "rx", "chemist", "medicine"],
-     "id_presets": ["amenity/pharmacy", "shop/chemist"], "id_terms_exclude": []},
-    {"id": "department_store", "label": "Department store", "group": "shop",
-     "match": [{"shop": ["department_store", "general"]}],
-     "terms": ["department store", "department stores", "big box store", "big box", "superstore", "supercenter", "discount store", "general store", "general merchandise"],
-     "id_presets": ["shop/department_store"]},
-    {"id": "warehouse_club", "label": "Warehouse club", "group": "shop",
-     "match": [{"shop": "wholesale"}],
-     "terms": ["warehouse club", "warehouse store", "wholesale club", "wholesale", "bulk store"],
-     "id_presets": ["shop/wholesale"], "id_terms_exclude": []},
-    {"id": "dollar_store", "label": "Dollar store", "group": "shop",
-     "match": [{"shop": "variety_store"}],
-     "terms": ["dollar store", "dollar stores", "variety store", "five and dime", "discount store"],
-     "id_presets": ["shop/variety_store"], "id_terms_exclude": []},
-    {"id": "hardware", "label": "Hardware store", "group": "shop",
-     "match": [{"shop": ["hardware", "doityourself", "trade"]}],
-     "terms": ["hardware", "hardware store", "home improvement", "home improvement store", "lumber", "lumber yard", "home center", "diy store", "tools"],
-     "id_presets": ["shop/hardware", "shop/doityourself"], "id_terms_exclude": []},
-    {"id": "mall", "label": "Shopping mall", "group": "shop",
-     "match": [{"shop": "mall"}, {"shop": "outlet"}],
-     "terms": ["mall", "malls", "shopping mall", "shopping center", "outlet mall", "outlets", "shopping"],
-     "id_presets": ["shop/mall"], "id_terms_exclude": []},
-    {"id": "clothes", "label": "Clothing store", "group": "shop",
-     "match": [{"shop": "clothes"}, {"shop": "shoes"}],
-     "terms": ["clothing", "clothing store", "clothes", "clothes store", "shoes", "shoe store", "apparel"],
-     "id_presets": ["shop/clothes"], "id_terms_exclude": []},
-    {"id": "electronics", "label": "Electronics store", "group": "shop",
-     "match": [{"shop": ["electronics", "mobile_phone", "computer"]}],
-     "terms": ["electronics", "electronics store", "cell phone store", "phone store", "computer store", "phone charger"],
-     "id_presets": ["shop/electronics", "shop/mobile_phone"], "id_terms_exclude": []},
-    {"id": "sporting_goods", "label": "Sporting goods and outdoors", "group": "shop",
-     "match": [{"shop": ["sports", "outdoor", "hunting", "fishing"]}],
-     "terms": ["sporting goods", "sports store", "outdoor store", "outfitter", "hunting store", "fishing store", "bait and tackle", "bait shop", "gun shop", "hunting license"],
-     "id_presets": ["shop/sports", "shop/outdoor"], "id_terms_exclude": []},
-    {"id": "pet_store", "label": "Pet store", "group": "shop",
-     "match": [{"shop": "pet"}],
-     "terms": ["pet store", "pet shop", "pet supplies", "dog food"],
-     "id_presets": ["shop/pet"], "id_terms_exclude": []},
-    {"id": "garden_center", "label": "Garden center", "group": "shop",
-     "match": [{"shop": "garden_centre"}],
-     "terms": ["garden center", "garden centre", "nursery", "plant nursery", "greenhouse", "mulch"],
-     "id_presets": ["shop/garden_centre"], "id_terms_exclude": []},
-    {"id": "farm_market", "label": "Farm market", "group": "shop",
-     "match": [{"shop": "farm"}, {"amenity": "marketplace"}],
-     "terms": ["farmers market", "farm market", "farm stand", "produce stand", "roadside stand", "fruit stand", "farm store", "amish market"],
-     "id_presets": ["shop/farm", "amenity/marketplace"], "id_terms_exclude": []},
-    {"id": "laundry", "label": "Laundromat", "group": "shop",
-     "match": [{"shop": ["laundry", "dry_cleaning"]}],
-     "terms": ["laundromat", "laundry", "coin laundry", "laundry mat", "dry cleaner", "dry cleaning", "wash and fold"],
-     "id_presets": ["shop/laundry", "shop/laundry/self_service"], "id_terms_exclude": []},
-
-    {"id": "atm", "unnamed": true, "label": "ATM", "group": "money",
-     "match": [{"amenity": "atm"}, {"atm": "yes"}],
-     "terms": ["atm", "atms", "cash machine", "cash", "get cash", "mac machine"],
-     "id_presets": ["amenity/atm"], "id_terms_exclude": []},
-    {"id": "bank", "label": "Bank", "group": "money",
-     "match": [{"amenity": "bank"}],
-     "terms": ["bank", "banks", "credit union", "bank branch"],
-     "id_presets": ["amenity/bank"], "id_terms_exclude": []},
-
-    {"id": "emergency_room", "unnamed": true, "label": "Emergency room", "group": "health",
-     "match": [{"amenity": "hospital", "!emergency": "no"}, {"healthcare": "hospital", "emergency": "yes"}, {"emergency": "emergency_ward_entrance"}],
-     "terms": ["emergency room", "er", "emergency", "emergency department", "e r", "trauma center"],
-     "id_presets": []},
-    {"id": "hospital", "unnamed": true, "label": "Hospital", "group": "health",
-     "match": [{"amenity": "hospital"}, {"healthcare": "hospital"}],
-     "terms": ["hospital", "hospitals", "medical center", "medical centre"],
-     "id_presets": ["amenity/hospital"], "id_terms_exclude": ["emergency room"]},
-    {"id": "urgent_care", "label": "Urgent care", "group": "health",
-     "match": [{"amenity": ["clinic", "doctors"], "name~": "urgent|express ?care|medexpress|patient first|walk.?in|minute ?clinic|care ?now|afc "},
-               {"healthcare": ["clinic", "doctor"], "name~": "urgent|express ?care|medexpress|patient first|walk.?in|minute ?clinic"},
-               {"urgent_care": "yes"}, {"healthcare:speciality~": "urgent"},
-               {"brand~": "medexpress|patient first|afc urgent|concentra|minuteclinic|careworks|carenow"}],
-     "terms": ["urgent care", "urgentcare", "walk in clinic", "walk-in clinic", "medexpress", "immediate care", "minute clinic", "express care"],
-     "id_presets": []},
-    {"id": "clinic", "label": "Doctor or clinic", "group": "health",
-     "match": [{"amenity": ["clinic", "doctors"]}, {"healthcare": ["clinic", "doctor", "centre"]}],
-     "terms": ["doctor", "doctors", "clinic", "medical clinic", "health center", "family doctor", "physician"],
-     "id_presets": ["amenity/clinic", "amenity/doctors"], "id_terms_exclude": ["urgentcare"]},
-    {"id": "dentist", "label": "Dentist", "group": "health",
-     "match": [{"amenity": "dentist"}, {"healthcare": "dentist"}],
-     "terms": ["dentist", "dental office", "dental", "orthodontist"],
-     "id_presets": ["amenity/dentist"], "id_terms_exclude": []},
-    {"id": "veterinary", "label": "Veterinarian", "group": "health",
-     "match": [{"amenity": "veterinary"}],
-     "terms": ["vet", "vets", "veterinarian", "animal hospital", "emergency vet", "pet hospital"],
-     "id_presets": ["amenity/veterinary"], "id_terms_exclude": []},
-
-    {"id": "motel", "label": "Motel", "group": "lodging",
-     "match": [{"tourism": "motel"}],
-     "terms": ["motel", "motels", "motor inn", "motor lodge", "cheap motel"],
-     "id_presets": ["tourism/motel"], "id_terms_exclude": []},
-    {"id": "hotel", "label": "Hotel", "group": "lodging",
-     "match": [{"tourism": "hotel"}],
-     "terms": ["hotel", "hotels", "inn", "suites", "resort", "lodge"],
-     "id_presets": ["tourism/hotel"], "id_terms_exclude": []},
-    {"id": "lodging", "label": "Lodging", "group": "lodging", "umbrella": true,
-     "match": [{"tourism": ["hotel", "motel", "guest_house", "hostel", "apartment", "chalet"]}],
-     "terms": ["lodging", "place to stay", "places to stay", "room", "rooms", "hotel or motel", "bed and breakfast", "b and b", "bnb", "overnight", "sleep"],
-     "id_presets": ["tourism/guest_house"], "id_terms_exclude": []},
-    {"id": "campground", "label": "Campground", "group": "lodging",
-     "match": [{"tourism": "camp_site"}],
-     "terms": ["campground", "campgrounds", "camping", "campsite", "camp site", "tent camping", "camp ground", "koa"],
-     "id_presets": ["tourism/camp_site"], "id_terms_exclude": []},
-    {"id": "rv_park", "label": "RV park", "group": "lodging",
-     "match": [{"tourism": "caravan_site"}],
-     "terms": ["rv park", "rv parks", "rv campground", "rv resort", "rv camping", "rv hookups", "trailer park"],
-     "id_presets": ["tourism/caravan_site"], "id_terms_exclude": []},
-
-    {"id": "post_office", "unnamed": true, "label": "Post office", "group": "services",
-     "match": [{"amenity": "post_office"}],
-     "terms": ["post office", "post offices", "usps", "postal", "mail", "stamps", "united states postal service"],
-     "id_presets": ["amenity/post_office"], "id_terms_exclude": []},
-    {"id": "police", "unnamed": true, "label": "Police", "group": "services",
-     "match": [{"amenity": "police"}],
-     "terms": ["police", "police station", "police department", "state police", "state trooper", "troopers", "sheriff", "cops", "police barracks"],
-     "id_presets": ["amenity/police"], "id_terms_exclude": []},
-    {"id": "fire_station", "unnamed": true, "label": "Fire station", "group": "services",
-     "match": [{"amenity": "fire_station"}],
-     "terms": ["fire station", "fire department", "fire company", "fire hall", "firehouse", "volunteer fire company"],
-     "id_presets": ["amenity/fire_station"], "id_terms_exclude": []},
-    {"id": "town_hall", "label": "Municipal building", "group": "services",
-     "match": [{"amenity": "townhall"}],
-     "terms": ["town hall", "city hall", "borough hall", "borough building", "township building", "municipal building", "township office", "borough office"],
-     "id_presets": ["amenity/townhall"], "id_terms_exclude": ["courthouse"]},
-    {"id": "courthouse", "label": "Courthouse", "group": "services",
-     "match": [{"amenity": "courthouse"}],
-     "terms": ["courthouse", "county courthouse", "court", "magistrate", "district justice", "district court"],
-     "id_presets": ["amenity/courthouse"], "id_terms_exclude": []},
-    {"id": "dmv", "label": "Driver license center", "group": "services", "pa": true,
-     "match": [{"office": "government", "name~": "driver.{0,3}licen|photo licen|penndot|dmv|license center|bmv|motor vehicle"},
-               {"amenity": ["townhall", "public_building"], "name~": "driver.{0,3}licen|photo licen|penndot|bmv"},
-               {"government": "transportation", "name~": "licen|penndot|bmv"},
-               {"name~": "^penndot (driver|photo)"}],
-     "terms": ["dmv", "driver license center", "drivers license center", "driver license", "drivers license", "penndot", "photo license center", "license renewal", "bmv", "motor vehicles", "license plate"],
-     "id_presets": []},
-    {"id": "library", "label": "Library", "group": "services",
-     "match": [{"amenity": "library"}],
-     "terms": ["library", "libraries", "public library"],
-     "id_presets": ["amenity/library"], "id_terms_exclude": []},
-
-    {"id": "state_game_lands", "label": "State game lands", "group": "outdoors", "pa": true,
-     "match": [{"name~": "^state game lands?\\b"}],
-     "terms": ["state game lands", "game lands", "sgl", "hunting land", "public hunting"],
-     "id_presets": []},
-    {"id": "beach", "label": "Beach", "group": "outdoors", "in_park": true,
-     "_doc": "Named beaches (item 14 of docs/next-round.md: 'Beach 10' at Presque Isle). Before the parks so a beach mapped with leisure=park as well shows as a beach.",
-     "match": [{"natural": "beach"}, {"leisure": "beach_resort"}],
-     "terms": ["beach", "beaches", "public beach", "swimming beach", "lake beach", "sand beach"],
-     "id_presets": []},
-    {"id": "waterfall", "label": "Waterfall", "group": "outdoors", "in_park": true,
-     "match": [{"natural": "waterfall"}, {"waterway": "waterfall"}],
-     "terms": ["waterfall", "waterfalls", ["falls", 0.8], "cascade", "cascades"],
-     "id_presets": []},
-    {"id": "cave", "label": "Cave", "group": "outdoors", "in_park": true,
-     "_doc": "Cave entrances; a show cave also tagged tourism=attraction shows as a cave.",
-     "match": [{"natural": "cave_entrance"}],
-     "terms": ["cave", "caves", "cavern", "caverns", "cave entrance"],
-     "id_presets": []},
-    {"id": "peak", "label": "Peak", "group": "outdoors", "in_park": true,
-     "match": [{"natural": "peak"}],
-     "terms": ["peak", "peaks", "summit", "mountain peak", "mountain top", "mountaintop", "highest point"],
-     "id_presets": []},
-    {"id": "state_park", "label": "State park", "group": "outdoors",
-     "match": [{"leisure": ["park", "nature_reserve"], "name~": "state park"}, {"boundary": ["protected_area", "national_park"], "name~": "state park"}, {"tourism": "camp_site", "name~": "state park"}],
-     "terms": ["state park", "state parks", "state forest", "dcnr park"],
-     "id_presets": []},
-    {"id": "park", "label": "Park", "group": "outdoors",
-     "match": [{"leisure": "park"}, {"leisure": "nature_reserve"}, {"boundary": "national_park"}],
-     "terms": ["park", "parks", "city park", "playground", "dog park", "nature preserve", "green space", "recreation area"],
-     "id_presets": ["leisure/park", "leisure/nature_reserve"], "id_terms_exclude": []},
-    {"id": "trailhead", "unnamed": true, "label": "Trailhead", "group": "outdoors",
-     "match": [{"highway": "trailhead"}],
-     "terms": ["trailhead", "trail head", "trail parking", "hiking trail", "hike", "trail access"],
-     "id_presets": ["highway/trailhead"], "id_terms_exclude": []},
-    {"id": "boat_launch", "unnamed": true, "label": "Boat launch", "group": "outdoors",
-     "match": [{"leisure": "slipway"}],
-     "terms": ["boat launch", "boat ramp", "boat access", "kayak launch", "launch ramp"],
-     "id_presets": ["leisure/slipway"], "id_terms_exclude": []},
-    {"id": "golf", "label": "Golf course", "group": "outdoors",
-     "match": [{"leisure": "golf_course"}],
-     "terms": ["golf", "golf course", "golf club", "country club", "driving range"],
-     "id_presets": ["leisure/golf_course"], "id_terms_exclude": []},
-    {"id": "museum", "label": "Museum", "group": "fun",
-     "match": [{"tourism": "museum"}],
-     "terms": ["museum", "museums", "history museum", "art museum", "historical society"],
-     "id_presets": ["tourism/museum"], "id_terms_exclude": []},
-    {"id": "attraction", "label": "Attraction", "group": "fun",
-     "match": [{"tourism": ["attraction", "theme_park", "zoo", "aquarium"]}],
-     "terms": ["attraction", "attractions", "things to do", "tourist attraction", "amusement park", "theme park", "zoo", "aquarium", "fun"],
-     "id_presets": ["tourism/attraction", "tourism/theme_park", "tourism/zoo"], "id_terms_exclude": []},
-    {"id": "cinema", "label": "Movie theater", "group": "fun",
-     "match": [{"amenity": "cinema"}],
-     "terms": ["movie theater", "movie theatre", "movies", "cinema", "drive in movie", "drive in theater", "movie"],
-     "id_presets": ["amenity/cinema"], "id_terms_exclude": []},
-    {"id": "gym", "label": "Gym", "group": "fun",
-     "match": [{"leisure": "fitness_centre"}, {"leisure": "sports_centre", "sport~": "fitness"}],
-     "terms": ["gym", "gyms", "fitness center", "fitness", "workout", "health club", "ymca"],
-     "id_presets": ["leisure/fitness_centre"], "id_terms_exclude": []},
-    {"id": "place_of_worship", "label": "Place of worship", "group": "community",
-     "match": [{"amenity": "place_of_worship"}],
-     "terms": ["church", "churches", "place of worship", "chapel", "mosque", "synagogue", "temple", "parish", "meeting house"],
-     "id_presets": ["amenity/place_of_worship"], "id_terms_exclude": []},
-    {"id": "cemetery", "label": "Cemetery", "group": "community",
-     "match": [{"landuse": "cemetery"}, {"amenity": "grave_yard"}],
-     "terms": ["cemetery", "cemeteries", "graveyard", "burial ground", "memorial park"],
-     "id_presets": ["landuse/cemetery", "amenity/grave_yard"], "id_terms_exclude": []},
-    {"id": "school", "label": "School", "group": "community",
-     "match": [{"amenity": "school"}],
-     "terms": ["school", "schools", "high school", "middle school", "elementary school", "elementary", "junior high", "academy"],
-     "id_presets": ["amenity/school"], "id_terms_exclude": []},
-    {"id": "university", "label": "College or university", "group": "community",
-     "match": [{"amenity": ["university", "college"]}],
-     "terms": ["university", "universities", "college", "colleges", "campus", "community college", "state university"],
-     "id_presets": ["amenity/university", "amenity/college"], "id_terms_exclude": []},
-
-    {"id": "airport", "label": "Airport", "group": "transport",
-     "match": [{"aeroway": "aerodrome", "!access": ["private", "no"]}],
-     "terms": ["airport", "airports", "airfield", "regional airport", "international airport", "flights"],
-     "id_presets": ["aeroway/aerodrome"], "id_terms_exclude": []},
-    {"id": "train_station", "label": "Train station", "group": "transport",
-     "match": [{"railway": ["station", "halt"], "!station": ["subway", "light_rail"]}, {"public_transport": "station", "train": "yes"}],
-     "terms": ["train station", "train stations", "amtrak", "amtrak station", "rail station", "railroad station", "regional rail", "septa regional rail", "train"],
-     "id_presets": ["railway/station", "public_transport/station_train"], "id_terms_exclude": []},
-    {"id": "subway_station", "label": "Subway or trolley station", "group": "transport",
-     "match": [{"railway": "station", "station": ["subway", "light_rail"]}, {"public_transport": "station", "subway": "yes"}, {"public_transport": "station", "light_rail": "yes"}],
-     "terms": ["subway station", "metro station", "el station", "trolley station", "light rail station", "t station"],
-     "id_presets": ["public_transport/station_subway"], "id_terms_exclude": []},
-    {"id": "bus_station", "label": "Bus station", "group": "transport",
-     "match": [{"amenity": "bus_station"}, {"public_transport": "station", "bus": "yes", "!train": "yes"}],
-     "terms": ["bus station", "bus terminal", "greyhound", "bus depot", "megabus", "intercity bus", "transit center"],
-     "id_presets": ["amenity/bus_station"], "id_terms_exclude": []}
-  ]
+ "_doc": [
+  "Everyday categories for a driver. Read at build time (tag rules -> which POIs belong to which category) and copied into the search database (terms -> category) so the device only needs the database.",
+  "match: a list of rules; a POI belongs to the category if ANY rule holds. A rule holds if ALL its entries hold.",
+  "  \"key\": \"value\"      tag equals value",
+  "  \"key\": [\"a\", \"b\"]   tag is one of the values",
+  "  \"key\": \"*\"          tag present with any value other than \"no\"",
+  "  \"key~\": \"regex\"     tag value matches the regex (case-insensitive, Python re.search)",
+  "  \"!key\": value/list/*  the negation of the same test",
+  "terms: everyday US words written for this project; a term written as [\"word\", 0.8] has a lower weight (the category is offered, but ranks below categories where the word weighs 1.0). Extra words copied from the iD tagging schema (see attribution) live in the generated file categories_idterms.json, made by seed_categories.py from the presets in id_presets, minus id_terms_exclude and the global exclude list. Never edit that file by hand.",
+  "unnamed: true lets unnamed, unbranded POIs of this category into the index (shown with the category label as title). Other categories need a name or brand.",
+  "facet: true marks a property of a POI that already has a better primary category (diesel at a gas station): searchable, never the displayed category.",
+  "umbrella: true means the category groups others (e.g. food) and is never shown as a POI's primary category. The primary category of a POI is the first non-umbrella category in file order that matches, so more specific categories come first.",
+  "pa: true marks Pennsylvania-specific categories.",
+  "in_park: true (named natural places a driver heads to: beaches, waterfalls, caves, peaks): such a POI inside named parks, nature reserves or protected areas (up to the three smallest that hold it) is also found as '<park> <label>' and '<park> <name>', with the park's name as written and without a trailing 'State Park', 'Park', ... (build.py PARK_SUFFIXES): 'presque isle beach' finds the beaches of Presque Isle State Park. Natural objects need a rule here to be kept at all: osm_extract.py keeps only the natural=* and waterway=* values these rules name."
+ ],
+ "attribution": "The words in categories_idterms.json (id_terms) are copied from the iD tagging schema, @openstreetmap/id-tagging-schema 7.3.0 (dist/translations/en.json: preset name, aliases and terms). Copyright (c) iD Contributors, ISC License, https://github.com/openstreetmap/id-tagging-schema/blob/main/LICENSE.md . Nothing was taken from Organic Maps.",
+ "attribution_license": "ISC License\n\nCopyright (c) iD Contributors\n\nPermission to use, copy, modify, and/or distribute this software for any\npurpose with or without fee is hereby granted, provided that the above\ncopyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH\nREGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY\nAND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,\nINDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM\nLOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR\nOTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR\nPERFORMANCE OF THIS SOFTWARE.\n",
+ "id_schema": {
+  "package": "@openstreetmap/id-tagging-schema",
+  "version": "7.3.0",
+  "file": "dist/translations/en.json",
+  "sha256": "f5a5dad8ac5d12f18559fac9d0383fcfeb89abc26ddfeffb1c4699315f583c47"
+ },
+ "id_terms_exclude_global": [
+  "dine",
+  "dining",
+  "eat",
+  "table",
+  "canteen",
+  "drive-in",
+  "grill",
+  "station",
+  "terminal",
+  "track",
+  "transit",
+  "transportation",
+  "public transit",
+  "public transportation",
+  "shop",
+  "store",
+  "service",
+  "machine",
+  "safe",
+  "stock",
+  "fund",
+  "trust",
+  "reserve",
+  "check",
+  "repository",
+  "treasury",
+  "vault",
+  "hall",
+  "institution",
+  "foundation",
+  "place",
+  "lot",
+  "green",
+  "grounds",
+  "estate",
+  "tract",
+  "forest",
+  "grass",
+  "square",
+  "plaza",
+  "esplanade",
+  "lawn",
+  "meadow",
+  "woodland",
+  "fold",
+  "mission",
+  "head",
+  "fed",
+  "law",
+  "badge",
+  "show",
+  "picture",
+  "screen",
+  "official",
+  "public office",
+  "city",
+  "village",
+  "government",
+  "municipal",
+  "camp",
+  "hobby",
+  "gift",
+  "hair",
+  "beauty",
+  "tooth",
+  "frozen",
+  "rolls",
+  "animal",
+  "cat",
+  "dog",
+  "kitten",
+  "puppy",
+  "reptile",
+  "tree",
+  "shrub",
+  "tank",
+  "refill",
+  "dive",
+  "letter",
+  "package",
+  "parcel",
+  "shipping",
+  "phone",
+  "radio",
+  "video",
+  "camera",
+  "audio",
+  "speaker",
+  "tv",
+  "dvd",
+  "blueray",
+  "computer",
+  "sick",
+  "surgery",
+  "ward",
+  "health",
+  "leisure",
+  "studio",
+  "nature",
+  "art",
+  "science",
+  "technology",
+  "history",
+  "cultural",
+  "painting",
+  "photograph",
+  "sculpture",
+  "exhibition",
+  "gallery",
+  "archaeological",
+  "archeological",
+  "excavation",
+  "religion",
+  "religious",
+  "oratory",
+  "sacellum",
+  "chantry",
+  "chancel",
+  "minster",
+  "bethel",
+  "links",
+  "film",
+  "flick",
+  "airplane",
+  "jet",
+  "plane",
+  "aeroway",
+  "wildlife",
+  "protected",
+  "elsan",
+  "cdp",
+  "ctdp",
+  "chemical toilet",
+  "sanitary",
+  "camper",
+  "campers",
+  "caravans",
+  "mobile homes",
+  "motor home",
+  "recreational vehicles",
+  "rv",
+  "camp pitch",
+  "panel beater",
+  "panelbeater",
+  "craft",
+  "athletics",
+  "equestrian",
+  "climbing",
+  "mountaineering",
+  "trekking",
+  "mountain biking",
+  "mile zero",
+  "staging area",
+  "trail endpoint",
+  "trail start",
+  "ballpark",
+  "frank",
+  "meat",
+  "withdrawal",
+  "deposit",
+  "financial",
+  "investment",
+  "savings",
+  "hire",
+  "vehicle",
+  "automobile",
+  "automotive",
+  "fun park",
+  "lodging",
+  "courthouse",
+  "fresh food",
+  "organics",
+  "baked goods",
+  "fruits",
+  "vegetables",
+  "orchard",
+  "greengrocer",
+  "bazaar",
+  "home theater",
+  "gadgets",
+  "appliance",
+  "bras",
+  "underwear",
+  "slacks",
+  "socks",
+  "airbnb",
+  "backpacker",
+  "bunk beds",
+  "dormitories",
+  "dorms",
+  "concierge",
+  "suite",
+  "house of god",
+  "fresh",
+  "graduate school",
+  "master's degree program",
+  "phd program",
+  "undergraduate school",
+  "judicial",
+  "justice",
+  "constable",
+  "constabulary",
+  "detective",
+  "enforcement",
+  "officer",
+  "patrol",
+  "book",
+  "reading",
+  "columbarium",
+  "mausoleum",
+  "tomb",
+  "scenery",
+  "vantage point",
+  "w.c.",
+  "wc",
+  "privy",
+  "latrine",
+  "outhouse",
+  "medic",
+  "pet clinic",
+  "pet doctor",
+  "sanatorium",
+  "sanitarium",
+  "infirmary",
+  "dispensary",
+  "apothecary",
+  "cash and carry",
+  "roadhouse",
+  "takeaway",
+  "food truck",
+  "superette",
+  "drip",
+  "brew",
+  "cocoa",
+  "hot drinks",
+  "tenting"
+ ],
+ "categories": [
+  {
+   "id": "truck_stop",
+   "unnamed": true,
+   "label": "Truck stop",
+   "group": "road",
+   "match": [
+    {
+     "amenity": "fuel",
+     "brand~": "^(love'?s|pilot|flying j|ta|ta express|petro|travelcenters of america|travel centers of america|sapp bros|bosselman|petro stopping)"
+    },
+    {
+     "amenity": "fuel",
+     "fuel:HGV_diesel": "yes"
+    },
+    {
+     "amenity": "fuel",
+     "hgv": "designated"
+    },
+    {
+     "highway": "services",
+     "hgv": [
+      "yes",
+      "designated"
+     ]
+    }
+   ],
+   "terms": [
+    "truck stop",
+    "truckstop",
+    "travel center",
+    "travel centre",
+    "truck fuel",
+    "trucker",
+    "semi fuel",
+    "big rig"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "service_plaza",
+   "unnamed": true,
+   "label": "Service plaza",
+   "group": "road",
+   "_doc": "Commercial truck stops mapped as highway=services (Love's, Pilot, Petro, TA, ...) are truck_stop only, so 'rest stop' / 'service plaza' find public rest areas and turnpike plazas first.",
+   "match": [
+    {
+     "highway": "services",
+     "!hgv": [
+      "yes",
+      "designated"
+     ],
+     "!brand~": "^(love'?s|pilot|flying j|ta|ta express|petro|travelcenters of america|travel centers of america|sapp bros|bosselman|one9)\\b",
+     "!name~": "^(love'?s|pilot|flying j|ta|ta express|petro|travelcenters of america|travel centers of america|sapp bros|bosselman|one9)\\b"
+    }
+   ],
+   "terms": [
+    "service plaza",
+    "travel plaza",
+    "turnpike plaza",
+    "turnpike service plaza",
+    "service area",
+    "services",
+    [
+     "rest stop",
+     0.8
+    ],
+    [
+     "rest area",
+     0.8
+    ]
+   ],
+   "id_presets": [
+    "highway/services"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "welcome_center",
+   "unnamed": true,
+   "label": "Welcome center",
+   "group": "road",
+   "pa": true,
+   "match": [
+    {
+     "highway": "rest_area",
+     "name~": "welcome"
+    },
+    {
+     "tourism": "information",
+     "name~": "welcome cent"
+    }
+   ],
+   "terms": [
+    "welcome center",
+    "welcome centre",
+    "state welcome center",
+    "pa welcome center",
+    [
+     "rest stop",
+     0.9
+    ],
+    [
+     "rest area",
+     0.9
+    ]
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "rest_area",
+   "unnamed": true,
+   "label": "Rest area",
+   "group": "road",
+   "match": [
+    {
+     "highway": "rest_area"
+    }
+   ],
+   "terms": [
+    "rest area",
+    "rest stop",
+    "rest stops",
+    "rest areas",
+    "roadside rest",
+    "pull off",
+    "highway rest area",
+    "interstate rest area",
+    "rest room stop"
+   ],
+   "id_presets": [
+    "highway/rest_area"
+   ]
+  },
+  {
+   "id": "toilets",
+   "unnamed": true,
+   "label": "Restroom",
+   "group": "road",
+   "match": [
+    {
+     "amenity": "toilets"
+    },
+    {
+     "toilets": "yes",
+     "highway": "rest_area"
+    }
+   ],
+   "terms": [
+    "restroom",
+    "restrooms",
+    "bathroom",
+    "bathrooms",
+    "toilet",
+    "toilets",
+    "public restroom",
+    "public bathroom",
+    "potty",
+    "mens room",
+    "ladies room",
+    "comfort station",
+    "porta potty"
+   ],
+   "id_presets": [
+    "amenity/toilets"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "diesel",
+   "unnamed": true,
+   "facet": true,
+   "label": "Diesel",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "fuel",
+     "fuel:diesel": "yes"
+    },
+    {
+     "amenity": "fuel",
+     "fuel:HGV_diesel": "yes"
+    }
+   ],
+   "terms": [
+    "diesel",
+    "diesel fuel",
+    "diesel gas",
+    "diesel station",
+    "diesel pump"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "fuel",
+   "unnamed": true,
+   "label": "Gas station",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "fuel"
+    }
+   ],
+   "terms": [
+    "gas",
+    "gas station",
+    "gas stations",
+    "gasoline",
+    "fuel",
+    "filling station",
+    "petrol",
+    "fill up",
+    "gas pump",
+    "service station",
+    "unleaded",
+    "e85",
+    "ethanol free",
+    "non ethanol"
+   ],
+   "id_presets": [
+    "amenity/fuel"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "ev_charging",
+   "unnamed": true,
+   "label": "EV charging",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "charging_station"
+    }
+   ],
+   "terms": [
+    "ev charger",
+    "ev chargers",
+    "ev charging",
+    "ev charging station",
+    "charging station",
+    "electric car charger",
+    "electric vehicle charging",
+    "car charger",
+    "ev station",
+    "charger",
+    "supercharger",
+    "fast charger",
+    "dc fast charger",
+    "level 2 charger",
+    "tesla charger",
+    "plug in"
+   ],
+   "id_presets": [
+    "amenity/charging_station"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "propane",
+   "unnamed": true,
+   "label": "Propane",
+   "group": "car",
+   "match": [
+    {
+     "shop": "gas"
+    },
+    {
+     "amenity": "fuel",
+     "fuel:lpg": "yes"
+    }
+   ],
+   "terms": [
+    "propane",
+    "propane refill",
+    "propane exchange",
+    "lpg",
+    "bottled gas"
+   ],
+   "id_presets": [
+    "shop/gas"
+   ],
+   "id_terms_exclude": [
+    "refill",
+    "tank"
+   ]
+  },
+  {
+   "id": "car_wash",
+   "unnamed": true,
+   "label": "Car wash",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "car_wash"
+    }
+   ],
+   "terms": [
+    "car wash",
+    "carwash",
+    "auto wash",
+    "touchless car wash",
+    "self serve car wash"
+   ],
+   "id_presets": [
+    "amenity/car_wash"
+   ]
+  },
+  {
+   "id": "oil_change",
+   "label": "Oil change",
+   "group": "car",
+   "match": [
+    {
+     "shop": "car_repair",
+     "service:vehicle:oil_change": "yes"
+    },
+    {
+     "shop": "car_repair",
+     "brand~": "jiffy lube|valvoline|take 5|grease monkey|express oil|quick lube"
+    },
+    {
+     "shop": "car_repair",
+     "name~": "oil change|lube"
+    }
+   ],
+   "terms": [
+    "oil change",
+    "quick lube",
+    "lube",
+    "oil and lube"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "vehicle_inspection",
+   "label": "Vehicle inspection",
+   "group": "car",
+   "pa": true,
+   "match": [
+    {
+     "shop": "car_repair",
+     "service:vehicle:inspection": "yes"
+    },
+    {
+     "shop": "car_repair",
+     "name~": "inspection|emission"
+    },
+    {
+     "amenity": "vehicle_inspection"
+    }
+   ],
+   "terms": [
+    "state inspection",
+    "inspection station",
+    "car inspection",
+    "vehicle inspection",
+    "emissions",
+    "emissions testing",
+    "emissions test",
+    "inspection sticker"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "car_repair",
+   "label": "Auto repair",
+   "group": "car",
+   "match": [
+    {
+     "shop": "car_repair"
+    }
+   ],
+   "terms": [
+    "auto repair",
+    "car repair",
+    "mechanic",
+    "garage",
+    "auto shop",
+    "repair shop",
+    "brakes",
+    "muffler",
+    "transmission repair",
+    "auto service",
+    "body shop",
+    "collision repair"
+   ],
+   "id_presets": [
+    "shop/car_repair"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "tire_shop",
+   "label": "Tire shop",
+   "group": "car",
+   "match": [
+    {
+     "shop": "tyres"
+    }
+   ],
+   "terms": [
+    "tire shop",
+    "tire store",
+    "tires",
+    "tire",
+    "tire repair",
+    "flat tire",
+    "tyres",
+    "new tires"
+   ],
+   "id_presets": [
+    "shop/tyres"
+   ]
+  },
+  {
+   "id": "auto_parts",
+   "label": "Auto parts",
+   "group": "car",
+   "match": [
+    {
+     "shop": "car_parts"
+    }
+   ],
+   "terms": [
+    "auto parts",
+    "car parts",
+    "auto parts store",
+    "parts store",
+    "car battery",
+    "wiper blades"
+   ],
+   "id_presets": [
+    "shop/car_parts"
+   ]
+  },
+  {
+   "id": "car_dealer",
+   "label": "Car dealer",
+   "group": "car",
+   "match": [
+    {
+     "shop": "car"
+    }
+   ],
+   "terms": [
+    "car dealer",
+    "car dealership",
+    "dealership",
+    "dealer",
+    "auto dealer",
+    "used cars",
+    "new cars",
+    "used car lot",
+    "car lot"
+   ],
+   "id_presets": [
+    "shop/car"
+   ]
+  },
+  {
+   "id": "car_rental",
+   "label": "Car rental",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "car_rental"
+    }
+   ],
+   "terms": [
+    "car rental",
+    "rental car",
+    "rent a car",
+    "rental cars",
+    "truck rental"
+   ],
+   "id_presets": [
+    "amenity/car_rental"
+   ]
+  },
+  {
+   "id": "park_and_ride",
+   "unnamed": true,
+   "label": "Park and ride",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "parking",
+     "park_ride": "*"
+    }
+   ],
+   "terms": [
+    "park and ride",
+    "park n ride",
+    "park & ride",
+    "commuter lot",
+    "commuter parking"
+   ],
+   "id_presets": [
+    "amenity/parking/park_ride"
+   ],
+   "id_terms_exclude": [
+    "p+r",
+    "train parking lot",
+    "metro parking lot",
+    "incentive parking lot",
+    "public transit parking lot",
+    "public transport parking lot"
+   ]
+  },
+  {
+   "id": "truck_parking",
+   "unnamed": true,
+   "label": "Truck parking",
+   "group": "road",
+   "match": [
+    {
+     "amenity": "parking",
+     "hgv": [
+      "designated",
+      "yes"
+     ]
+    },
+    {
+     "highway": "rest_area",
+     "hgv": [
+      "designated",
+      "yes"
+     ]
+    }
+   ],
+   "terms": [
+    "truck parking",
+    "semi parking",
+    "overnight truck parking"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "parking",
+   "label": "Parking",
+   "group": "car",
+   "match": [
+    {
+     "amenity": "parking",
+     "!access": [
+      "private",
+      "no",
+      "customers"
+     ]
+    },
+    {
+     "amenity": "parking_entrance",
+     "!access": [
+      "private",
+      "no"
+     ]
+    }
+   ],
+   "terms": [
+    "parking",
+    "parking lot",
+    "parking garage",
+    "parking deck",
+    "car park",
+    "public parking",
+    "free parking",
+    "parking ramp"
+   ],
+   "id_presets": [
+    "amenity/parking"
+   ],
+   "id_terms_exclude": [
+    "rv parking",
+    "truck parking"
+   ]
+  },
+  {
+   "id": "rv_dump",
+   "unnamed": true,
+   "label": "RV dump station",
+   "group": "road",
+   "match": [
+    {
+     "amenity": "sanitary_dump_station"
+    },
+    {
+     "sanitary_dump_station": [
+      "yes",
+      "customers"
+     ]
+    }
+   ],
+   "terms": [
+    "rv dump",
+    "rv dump station",
+    "dump station",
+    "sewage dump",
+    "camper dump",
+    "black water dump",
+    "sani dump"
+   ],
+   "id_presets": [
+    "amenity/sanitary_dump_station"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "viewpoint",
+   "unnamed": true,
+   "label": "Scenic viewpoint",
+   "group": "road",
+   "match": [
+    {
+     "tourism": "viewpoint"
+    }
+   ],
+   "terms": [
+    "viewpoint",
+    "scenic overlook",
+    "overlook",
+    "scenic view",
+    "lookout",
+    "vista",
+    "scenic vista",
+    "view"
+   ],
+   "id_presets": [
+    "tourism/viewpoint"
+   ]
+  },
+  {
+   "id": "picnic_site",
+   "unnamed": true,
+   "label": "Picnic area",
+   "group": "road",
+   "match": [
+    {
+     "tourism": "picnic_site"
+    }
+   ],
+   "terms": [
+    "picnic area",
+    "picnic site",
+    "picnic",
+    "picnic grove",
+    "pavilion"
+   ],
+   "id_presets": [
+    "tourism/picnic_site"
+   ]
+  },
+  {
+   "id": "food",
+   "label": "Food",
+   "group": "food",
+   "umbrella": true,
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food",
+      "cafe",
+      "food_court"
+     ]
+    }
+   ],
+   "terms": [
+    "food",
+    "eat",
+    "place to eat",
+    "places to eat",
+    "somewhere to eat",
+    "hungry",
+    "lunch",
+    "dinner",
+    "meal",
+    "dining",
+    "food near me"
+   ],
+   "id_presets": [
+    "amenity/food_court"
+   ]
+  },
+  {
+   "id": "coffee",
+   "label": "Coffee",
+   "group": "food",
+   "match": [
+    {
+     "amenity": "cafe"
+    },
+    {
+     "amenity": [
+      "fast_food",
+      "restaurant"
+     ],
+     "cuisine~": "coffee"
+    }
+   ],
+   "terms": [
+    "coffee",
+    "coffee shop",
+    "coffee house",
+    "cafe",
+    "espresso",
+    "latte",
+    "cappuccino",
+    "iced coffee"
+   ],
+   "id_presets": [
+    "amenity/cafe",
+    "amenity/cafe/coffee_shop"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "donut",
+   "label": "Donut shop",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "fast_food",
+      "cafe"
+     ],
+     "cuisine~": "donut|doughnut"
+    },
+    {
+     "shop": "pastry",
+     "cuisine~": "donut"
+    }
+   ],
+   "terms": [
+    "donut",
+    "donuts",
+    "doughnut",
+    "doughnuts",
+    "donut shop"
+   ],
+   "id_presets": [
+    "amenity/fast_food/donut"
+   ]
+  },
+  {
+   "id": "pizza",
+   "label": "Pizza",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "pizza"
+    }
+   ],
+   "terms": [
+    "pizza",
+    "pizza place",
+    "pizzeria",
+    "pizza shop",
+    "pizza delivery",
+    "slice"
+   ],
+   "id_presets": [
+    "amenity/restaurant/pizza",
+    "amenity/fast_food/pizza"
+   ]
+  },
+  {
+   "id": "burger",
+   "label": "Burgers",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "burger"
+    }
+   ],
+   "terms": [
+    "burger",
+    "burgers",
+    "hamburger",
+    "hamburgers",
+    "cheeseburger"
+   ],
+   "id_presets": [
+    "amenity/fast_food/burger"
+   ]
+  },
+  {
+   "id": "chicken",
+   "label": "Chicken",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "chicken|wings"
+    }
+   ],
+   "terms": [
+    "chicken",
+    "fried chicken",
+    "chicken wings",
+    "wings",
+    "chicken tenders",
+    "chicken sandwich"
+   ],
+   "id_presets": [
+    "amenity/fast_food/chicken"
+   ]
+  },
+  {
+   "id": "sandwich",
+   "label": "Sandwiches and hoagies",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "sandwich|sub|hoagie|deli|cheesesteak"
+    },
+    {
+     "shop": "deli"
+    }
+   ],
+   "terms": [
+    "sandwich",
+    "sandwiches",
+    "sub",
+    "subs",
+    "hoagie",
+    "hoagies",
+    "sub shop",
+    "deli",
+    "cheesesteak",
+    "cheesesteaks",
+    "philly cheesesteak",
+    "hoagie shop"
+   ],
+   "id_presets": [
+    "amenity/fast_food/sandwich"
+   ]
+  },
+  {
+   "id": "chinese",
+   "label": "Chinese",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "chinese"
+    }
+   ],
+   "terms": [
+    "chinese",
+    "chinese food",
+    "chinese restaurant",
+    "chinese takeout"
+   ],
+   "id_presets": [
+    "amenity/restaurant/chinese"
+   ]
+  },
+  {
+   "id": "mexican",
+   "label": "Mexican",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "mexican|tex-mex|tex_mex|taco|burrito"
+    }
+   ],
+   "terms": [
+    "mexican",
+    "mexican food",
+    "mexican restaurant",
+    "tacos",
+    "taco",
+    "burrito",
+    "burritos"
+   ],
+   "id_presets": [
+    "amenity/restaurant/mexican"
+   ]
+  },
+  {
+   "id": "italian",
+   "label": "Italian",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "italian"
+    }
+   ],
+   "terms": [
+    "italian",
+    "italian food",
+    "italian restaurant",
+    "pasta"
+   ],
+   "id_presets": [
+    "amenity/restaurant/italian"
+   ]
+  },
+  {
+   "id": "asian",
+   "label": "Japanese and sushi",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "japanese|sushi|hibachi|ramen"
+    }
+   ],
+   "terms": [
+    "sushi",
+    "japanese",
+    "japanese food",
+    "hibachi",
+    "ramen",
+    "japanese restaurant"
+   ],
+   "id_presets": [
+    "amenity/restaurant/japanese",
+    "amenity/restaurant/sushi"
+   ]
+  },
+  {
+   "id": "seafood",
+   "label": "Seafood",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "seafood|fish"
+    }
+   ],
+   "terms": [
+    "seafood",
+    "fish",
+    "seafood restaurant",
+    "crab",
+    "fish fry"
+   ],
+   "id_presets": [
+    "amenity/restaurant/seafood"
+   ]
+  },
+  {
+   "id": "bbq",
+   "label": "Barbecue and steak",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food"
+     ],
+     "cuisine~": "barbecue|bbq|steak"
+    }
+   ],
+   "terms": [
+    "bbq",
+    "barbecue",
+    "barbeque",
+    "steak",
+    "steakhouse",
+    "steak house",
+    "smokehouse"
+   ],
+   "id_presets": [
+    "amenity/restaurant/barbecue",
+    "amenity/restaurant/steakhouse"
+   ]
+  },
+  {
+   "id": "breakfast",
+   "label": "Breakfast and diners",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "restaurant",
+      "fast_food",
+      "cafe"
+     ],
+     "cuisine~": "breakfast|pancake|diner|brunch|waffle"
+    },
+    {
+     "amenity": "restaurant",
+     "name~": "diner"
+    }
+   ],
+   "terms": [
+    "breakfast",
+    "brunch",
+    "diner",
+    "diners",
+    "pancakes",
+    "pancake house",
+    "breakfast place",
+    "waffles"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "ice_cream",
+   "label": "Ice cream",
+   "group": "food",
+   "match": [
+    {
+     "amenity": "ice_cream"
+    },
+    {
+     "shop": "ice_cream"
+    },
+    {
+     "amenity": [
+      "fast_food",
+      "cafe",
+      "restaurant"
+     ],
+     "cuisine~": "ice_cream|frozen_yogurt|custard"
+    }
+   ],
+   "terms": [
+    "ice cream",
+    "ice cream shop",
+    "frozen custard",
+    "custard",
+    "soft serve",
+    "frozen yogurt",
+    "dairy bar",
+    "creamery"
+   ],
+   "id_presets": [
+    "amenity/ice_cream"
+   ]
+  },
+  {
+   "id": "bakery",
+   "label": "Bakery",
+   "group": "food",
+   "match": [
+    {
+     "shop": [
+      "bakery",
+      "pastry"
+     ]
+    }
+   ],
+   "terms": [
+    "bakery",
+    "bakeries",
+    "bake shop",
+    "pastry",
+    "pastries",
+    "cupcakes"
+   ],
+   "id_presets": [
+    "shop/bakery"
+   ]
+  },
+  {
+   "id": "fast_food",
+   "label": "Fast food",
+   "group": "food",
+   "match": [
+    {
+     "amenity": "fast_food"
+    }
+   ],
+   "terms": [
+    "fast food",
+    "drive thru",
+    "drive through",
+    "drive-thru",
+    "takeout",
+    "take out",
+    "quick food",
+    "fast food restaurant"
+   ],
+   "id_presets": [
+    "amenity/fast_food"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "restaurant",
+   "label": "Restaurant",
+   "group": "food",
+   "match": [
+    {
+     "amenity": "restaurant"
+    }
+   ],
+   "terms": [
+    "restaurant",
+    "restaurants",
+    "sit down restaurant",
+    "family restaurant",
+    "dine in",
+    "bar and grill",
+    "eatery"
+   ],
+   "id_presets": [
+    "amenity/restaurant"
+   ]
+  },
+  {
+   "id": "bar",
+   "label": "Bar or pub",
+   "group": "food",
+   "match": [
+    {
+     "amenity": [
+      "bar",
+      "pub",
+      "biergarten"
+     ]
+    }
+   ],
+   "terms": [
+    "bar",
+    "bars",
+    "pub",
+    "pubs",
+    "tavern",
+    "saloon",
+    "sports bar",
+    "drinks",
+    "happy hour"
+   ],
+   "id_presets": [
+    "amenity/bar",
+    "amenity/pub"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "brewery",
+   "label": "Brewery",
+   "group": "food",
+   "match": [
+    {
+     "craft": "brewery"
+    },
+    {
+     "microbrewery": "yes"
+    },
+    {
+     "industrial": "brewery",
+     "name": "*"
+    }
+   ],
+   "terms": [
+    "brewery",
+    "breweries",
+    "brewpub",
+    "brew pub",
+    "craft beer",
+    "taproom",
+    "tap room",
+    "microbrewery"
+   ],
+   "id_presets": [
+    "craft/brewery"
+   ]
+  },
+  {
+   "id": "winery",
+   "label": "Winery",
+   "group": "food",
+   "match": [
+    {
+     "craft": "winery"
+    },
+    {
+     "shop": "winery"
+    },
+    {
+     "amenity": "winery"
+    }
+   ],
+   "terms": [
+    "winery",
+    "wineries",
+    "vineyard",
+    "wine tasting",
+    "tasting room"
+   ],
+   "id_presets": [
+    "craft/winery"
+   ]
+  },
+  {
+   "id": "state_store",
+   "label": "Fine Wine & Good Spirits (state store)",
+   "group": "shop",
+   "pa": true,
+   "match": [
+    {
+     "shop": [
+      "alcohol",
+      "wine"
+     ],
+     "brand~": "fine wine"
+    },
+    {
+     "shop": [
+      "alcohol",
+      "wine"
+     ],
+     "name~": "fine wine|wine (and|&) spirits|state store|premium collection"
+    },
+    {
+     "shop": [
+      "alcohol",
+      "wine"
+     ],
+     "operator~": "liquor control board|plcb"
+    }
+   ],
+   "terms": [
+    "state store",
+    "state stores",
+    "liquor store",
+    "fine wine and good spirits",
+    "fine wine good spirits",
+    "wine and spirits",
+    "wine & spirits",
+    "plcb",
+    "pa liquor store",
+    "liquor",
+    "wine store",
+    "wine shop",
+    "spirits",
+    "booze"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "beer_distributor",
+   "label": "Beer distributor",
+   "group": "shop",
+   "pa": true,
+   "match": [
+    {
+     "shop": "beverages"
+    },
+    {
+     "shop": "alcohol",
+     "name~": "beer|beverage|distribut|brew|six pack|6 pack",
+     "!brand~": "fine wine"
+    },
+    {
+     "shop": "alcohol",
+     "drink:beer": [
+      "yes",
+      "retail"
+     ],
+     "!brand~": "fine wine",
+     "!name~": "fine wine|wine (and|&) spirits"
+    }
+   ],
+   "terms": [
+    "beer distributor",
+    "beer distributors",
+    "beer store",
+    "beer",
+    "beer distributer",
+    "beverage distributor",
+    "case of beer",
+    "six pack",
+    "keg",
+    "kegs",
+    "beer barn"
+   ],
+   "id_presets": [
+    "shop/beverages"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "liquor",
+   "label": "Liquor store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "alcohol",
+      "wine"
+     ]
+    }
+   ],
+   "terms": [
+    "liquor store",
+    "liquor",
+    "alcohol",
+    "booze",
+    "package store",
+    "bottle shop",
+    "wine shop",
+    "wine store"
+   ],
+   "id_presets": [
+    "shop/alcohol",
+    "shop/wine"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "grocery",
+   "label": "Grocery store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "supermarket",
+      "grocery",
+      "greengrocer"
+     ]
+    }
+   ],
+   "terms": [
+    "grocery",
+    "groceries",
+    "grocery store",
+    "grocery stores",
+    "supermarket",
+    "supermarkets",
+    "food store",
+    "food market"
+   ],
+   "id_presets": [
+    "shop/supermarket"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "convenience",
+   "label": "Convenience store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "convenience"
+    }
+   ],
+   "terms": [
+    "convenience store",
+    "convenience",
+    "mini mart",
+    "minimart",
+    "quick mart",
+    "corner store",
+    "c store",
+    "snacks",
+    "quick stop",
+    "gas station store"
+   ],
+   "id_presets": [
+    "shop/convenience"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "pharmacy",
+   "label": "Pharmacy",
+   "group": "shop",
+   "match": [
+    {
+     "amenity": "pharmacy"
+    },
+    {
+     "shop": "chemist"
+    },
+    {
+     "healthcare": "pharmacy"
+    }
+   ],
+   "terms": [
+    "pharmacy",
+    "pharmacies",
+    "drugstore",
+    "drug store",
+    "prescriptions",
+    "prescription",
+    "rx",
+    "chemist",
+    "medicine"
+   ],
+   "id_presets": [
+    "amenity/pharmacy",
+    "shop/chemist"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "department_store",
+   "label": "Department store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "department_store",
+      "general"
+     ]
+    }
+   ],
+   "terms": [
+    "department store",
+    "department stores",
+    "big box store",
+    "big box",
+    "superstore",
+    "supercenter",
+    "discount store",
+    "general store",
+    "general merchandise"
+   ],
+   "id_presets": [
+    "shop/department_store"
+   ]
+  },
+  {
+   "id": "warehouse_club",
+   "label": "Warehouse club",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "wholesale"
+    }
+   ],
+   "terms": [
+    "warehouse club",
+    "warehouse store",
+    "wholesale club",
+    "wholesale",
+    "bulk store"
+   ],
+   "id_presets": [
+    "shop/wholesale"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "dollar_store",
+   "label": "Dollar store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "variety_store"
+    }
+   ],
+   "terms": [
+    "dollar store",
+    "dollar stores",
+    "variety store",
+    "five and dime",
+    "discount store"
+   ],
+   "id_presets": [
+    "shop/variety_store"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "hardware",
+   "label": "Hardware store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "hardware",
+      "doityourself",
+      "trade"
+     ]
+    }
+   ],
+   "terms": [
+    "hardware",
+    "hardware store",
+    "home improvement",
+    "home improvement store",
+    "lumber",
+    "lumber yard",
+    "home center",
+    "diy store",
+    "tools"
+   ],
+   "id_presets": [
+    "shop/hardware",
+    "shop/doityourself"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "mall",
+   "label": "Shopping mall",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "mall"
+    },
+    {
+     "shop": "outlet"
+    }
+   ],
+   "terms": [
+    "mall",
+    "malls",
+    "shopping mall",
+    "shopping center",
+    "outlet mall",
+    "outlets",
+    "shopping"
+   ],
+   "id_presets": [
+    "shop/mall"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "clothes",
+   "label": "Clothing store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "clothes"
+    },
+    {
+     "shop": "shoes"
+    }
+   ],
+   "terms": [
+    "clothing",
+    "clothing store",
+    "clothes",
+    "clothes store",
+    "shoes",
+    "shoe store",
+    "apparel"
+   ],
+   "id_presets": [
+    "shop/clothes"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "electronics",
+   "label": "Electronics store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "electronics",
+      "mobile_phone",
+      "computer"
+     ]
+    }
+   ],
+   "terms": [
+    "electronics",
+    "electronics store",
+    "cell phone store",
+    "phone store",
+    "computer store",
+    "phone charger"
+   ],
+   "id_presets": [
+    "shop/electronics",
+    "shop/mobile_phone"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "sporting_goods",
+   "label": "Sporting goods and outdoors",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "sports",
+      "outdoor",
+      "hunting",
+      "fishing"
+     ]
+    }
+   ],
+   "terms": [
+    "sporting goods",
+    "sports store",
+    "outdoor store",
+    "outfitter",
+    "hunting store",
+    "fishing store",
+    "bait and tackle",
+    "bait shop",
+    "gun shop",
+    "hunting license"
+   ],
+   "id_presets": [
+    "shop/sports",
+    "shop/outdoor"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "pet_store",
+   "label": "Pet store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "pet"
+    }
+   ],
+   "terms": [
+    "pet store",
+    "pet shop",
+    "pet supplies",
+    "dog food"
+   ],
+   "id_presets": [
+    "shop/pet"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "garden_center",
+   "label": "Garden center",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "garden_centre"
+    }
+   ],
+   "terms": [
+    "garden center",
+    "garden centre",
+    "nursery",
+    "plant nursery",
+    "greenhouse",
+    "mulch"
+   ],
+   "id_presets": [
+    "shop/garden_centre"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "farm_market",
+   "label": "Farm market",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "farm"
+    },
+    {
+     "amenity": "marketplace"
+    }
+   ],
+   "terms": [
+    "farmers market",
+    "farm market",
+    "farm stand",
+    "produce stand",
+    "roadside stand",
+    "fruit stand",
+    "farm store",
+    "amish market"
+   ],
+   "id_presets": [
+    "shop/farm",
+    "amenity/marketplace"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "laundry",
+   "label": "Laundromat",
+   "group": "shop",
+   "match": [
+    {
+     "shop": [
+      "laundry",
+      "dry_cleaning"
+     ]
+    }
+   ],
+   "terms": [
+    "laundromat",
+    "laundry",
+    "coin laundry",
+    "laundry mat",
+    "dry cleaner",
+    "dry cleaning",
+    "wash and fold"
+   ],
+   "id_presets": [
+    "shop/laundry",
+    "shop/laundry/self_service"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "atm",
+   "unnamed": true,
+   "label": "ATM",
+   "group": "money",
+   "match": [
+    {
+     "amenity": "atm"
+    },
+    {
+     "atm": "yes"
+    }
+   ],
+   "terms": [
+    "atm",
+    "atms",
+    "cash machine",
+    "cash",
+    "get cash",
+    "mac machine"
+   ],
+   "id_presets": [
+    "amenity/atm"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "bank",
+   "label": "Bank",
+   "group": "money",
+   "match": [
+    {
+     "amenity": "bank"
+    }
+   ],
+   "terms": [
+    "bank",
+    "banks",
+    "credit union",
+    "bank branch"
+   ],
+   "id_presets": [
+    "amenity/bank"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "emergency_room",
+   "unnamed": true,
+   "label": "Emergency room",
+   "group": "health",
+   "match": [
+    {
+     "amenity": "hospital",
+     "!emergency": "no"
+    },
+    {
+     "healthcare": "hospital",
+     "emergency": "yes"
+    },
+    {
+     "emergency": "emergency_ward_entrance"
+    }
+   ],
+   "terms": [
+    "emergency room",
+    "er",
+    "emergency",
+    "emergency department",
+    "e r",
+    "trauma center"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "hospital",
+   "unnamed": true,
+   "label": "Hospital",
+   "group": "health",
+   "match": [
+    {
+     "amenity": "hospital"
+    },
+    {
+     "healthcare": "hospital"
+    }
+   ],
+   "terms": [
+    "hospital",
+    "hospitals",
+    "medical center",
+    "medical centre"
+   ],
+   "id_presets": [
+    "amenity/hospital"
+   ],
+   "id_terms_exclude": [
+    "emergency room"
+   ]
+  },
+  {
+   "id": "urgent_care",
+   "label": "Urgent care",
+   "group": "health",
+   "match": [
+    {
+     "amenity": [
+      "clinic",
+      "doctors"
+     ],
+     "name~": "urgent|express ?care|medexpress|patient first|walk.?in|minute ?clinic|care ?now|afc "
+    },
+    {
+     "healthcare": [
+      "clinic",
+      "doctor"
+     ],
+     "name~": "urgent|express ?care|medexpress|patient first|walk.?in|minute ?clinic"
+    },
+    {
+     "urgent_care": "yes"
+    },
+    {
+     "healthcare:speciality~": "urgent"
+    },
+    {
+     "brand~": "medexpress|patient first|afc urgent|concentra|minuteclinic|careworks|carenow"
+    }
+   ],
+   "terms": [
+    "urgent care",
+    "urgentcare",
+    "walk in clinic",
+    "walk-in clinic",
+    "medexpress",
+    "immediate care",
+    "minute clinic",
+    "express care"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "clinic",
+   "label": "Doctor or clinic",
+   "group": "health",
+   "match": [
+    {
+     "amenity": [
+      "clinic",
+      "doctors"
+     ]
+    },
+    {
+     "healthcare": [
+      "clinic",
+      "doctor",
+      "centre"
+     ]
+    }
+   ],
+   "terms": [
+    "doctor",
+    "doctors",
+    "clinic",
+    "medical clinic",
+    "health center",
+    "family doctor",
+    "physician"
+   ],
+   "id_presets": [
+    "amenity/clinic",
+    "amenity/doctors"
+   ],
+   "id_terms_exclude": [
+    "urgentcare"
+   ]
+  },
+  {
+   "id": "dentist",
+   "label": "Dentist",
+   "group": "health",
+   "match": [
+    {
+     "amenity": "dentist"
+    },
+    {
+     "healthcare": "dentist"
+    }
+   ],
+   "terms": [
+    "dentist",
+    "dental office",
+    "dental",
+    "orthodontist"
+   ],
+   "id_presets": [
+    "amenity/dentist"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "veterinary",
+   "label": "Veterinarian",
+   "group": "health",
+   "match": [
+    {
+     "amenity": "veterinary"
+    }
+   ],
+   "terms": [
+    "vet",
+    "vets",
+    "veterinarian",
+    "animal hospital",
+    "emergency vet",
+    "pet hospital"
+   ],
+   "id_presets": [
+    "amenity/veterinary"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "motel",
+   "label": "Motel",
+   "group": "lodging",
+   "match": [
+    {
+     "tourism": "motel"
+    }
+   ],
+   "terms": [
+    "motel",
+    "motels",
+    "motor inn",
+    "motor lodge",
+    "cheap motel"
+   ],
+   "id_presets": [
+    "tourism/motel"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "hotel",
+   "label": "Hotel",
+   "group": "lodging",
+   "match": [
+    {
+     "tourism": "hotel"
+    }
+   ],
+   "terms": [
+    "hotel",
+    "hotels",
+    "inn",
+    "suites",
+    "resort",
+    "lodge"
+   ],
+   "id_presets": [
+    "tourism/hotel"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "lodging",
+   "label": "Lodging",
+   "group": "lodging",
+   "umbrella": true,
+   "match": [
+    {
+     "tourism": [
+      "hotel",
+      "motel",
+      "guest_house",
+      "hostel",
+      "apartment",
+      "chalet"
+     ]
+    }
+   ],
+   "terms": [
+    "lodging",
+    "place to stay",
+    "places to stay",
+    "room",
+    "rooms",
+    "hotel or motel",
+    "bed and breakfast",
+    "b and b",
+    "bnb",
+    "overnight",
+    "sleep"
+   ],
+   "id_presets": [
+    "tourism/guest_house"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "campground",
+   "label": "Campground",
+   "group": "lodging",
+   "match": [
+    {
+     "tourism": "camp_site"
+    }
+   ],
+   "terms": [
+    "campground",
+    "campgrounds",
+    "camping",
+    "campsite",
+    "camp site",
+    "tent camping",
+    "camp ground",
+    "koa"
+   ],
+   "id_presets": [
+    "tourism/camp_site"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "rv_park",
+   "label": "RV park",
+   "group": "lodging",
+   "match": [
+    {
+     "tourism": "caravan_site"
+    }
+   ],
+   "terms": [
+    "rv park",
+    "rv parks",
+    "rv campground",
+    "rv resort",
+    "rv camping",
+    "rv hookups",
+    "trailer park"
+   ],
+   "id_presets": [
+    "tourism/caravan_site"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "post_office",
+   "unnamed": true,
+   "label": "Post office",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "post_office"
+    }
+   ],
+   "terms": [
+    "post office",
+    "post offices",
+    "usps",
+    "postal",
+    "mail",
+    "stamps",
+    "united states postal service"
+   ],
+   "id_presets": [
+    "amenity/post_office"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "police",
+   "unnamed": true,
+   "label": "Police",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "police"
+    }
+   ],
+   "terms": [
+    "police",
+    "police station",
+    "police department",
+    "state police",
+    "state trooper",
+    "troopers",
+    "sheriff",
+    "cops",
+    "police barracks"
+   ],
+   "id_presets": [
+    "amenity/police"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "fire_station",
+   "unnamed": true,
+   "label": "Fire station",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "fire_station"
+    }
+   ],
+   "terms": [
+    "fire station",
+    "fire department",
+    "fire company",
+    "fire hall",
+    "firehouse",
+    "volunteer fire company"
+   ],
+   "id_presets": [
+    "amenity/fire_station"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "town_hall",
+   "label": "Municipal building",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "townhall"
+    }
+   ],
+   "terms": [
+    "town hall",
+    "city hall",
+    "borough hall",
+    "borough building",
+    "township building",
+    "municipal building",
+    "township office",
+    "borough office"
+   ],
+   "id_presets": [
+    "amenity/townhall"
+   ],
+   "id_terms_exclude": [
+    "courthouse"
+   ]
+  },
+  {
+   "id": "courthouse",
+   "label": "Courthouse",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "courthouse"
+    }
+   ],
+   "terms": [
+    "courthouse",
+    "county courthouse",
+    "court",
+    "magistrate",
+    "district justice",
+    "district court"
+   ],
+   "id_presets": [
+    "amenity/courthouse"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "dmv",
+   "label": "Driver license center",
+   "group": "services",
+   "pa": true,
+   "match": [
+    {
+     "office": "government",
+     "name~": "driver.{0,3}licen|photo licen|penndot|dmv|license center|bmv|motor vehicle"
+    },
+    {
+     "amenity": [
+      "townhall",
+      "public_building"
+     ],
+     "name~": "driver.{0,3}licen|photo licen|penndot|bmv"
+    },
+    {
+     "government": "transportation",
+     "name~": "licen|penndot|bmv"
+    },
+    {
+     "name~": "^penndot (driver|photo)"
+    }
+   ],
+   "terms": [
+    "dmv",
+    "driver license center",
+    "drivers license center",
+    "driver license",
+    "drivers license",
+    "penndot",
+    "photo license center",
+    "license renewal",
+    "bmv",
+    "motor vehicles",
+    "license plate"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "library",
+   "label": "Library",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "library"
+    }
+   ],
+   "terms": [
+    "library",
+    "libraries",
+    "public library"
+   ],
+   "id_presets": [
+    "amenity/library"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "state_game_lands",
+   "label": "State game lands",
+   "group": "outdoors",
+   "pa": true,
+   "match": [
+    {
+     "name~": "^state game lands?\\b"
+    }
+   ],
+   "terms": [
+    "state game lands",
+    "game lands",
+    "sgl",
+    "hunting land",
+    "public hunting"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "beach",
+   "label": "Beach",
+   "group": "outdoors",
+   "in_park": true,
+   "_doc": "Named beaches (item 14 of docs/next-round.md: 'Beach 10' at Presque Isle). Before the parks so a beach mapped with leisure=park as well shows as a beach.",
+   "match": [
+    {
+     "natural": "beach"
+    },
+    {
+     "leisure": "beach_resort"
+    }
+   ],
+   "terms": [
+    "beach",
+    "beaches",
+    "public beach",
+    "swimming beach",
+    "lake beach",
+    "sand beach"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "waterfall",
+   "label": "Waterfall",
+   "group": "outdoors",
+   "in_park": true,
+   "match": [
+    {
+     "natural": "waterfall"
+    },
+    {
+     "waterway": "waterfall"
+    }
+   ],
+   "terms": [
+    "waterfall",
+    "waterfalls",
+    [
+     "falls",
+     0.8
+    ],
+    "cascade",
+    "cascades"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "cave",
+   "label": "Cave",
+   "group": "outdoors",
+   "in_park": true,
+   "_doc": "Cave entrances; a show cave also tagged tourism=attraction shows as a cave.",
+   "match": [
+    {
+     "natural": "cave_entrance"
+    }
+   ],
+   "terms": [
+    "cave",
+    "caves",
+    "cavern",
+    "caverns",
+    "cave entrance"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "peak",
+   "label": "Peak",
+   "group": "outdoors",
+   "in_park": true,
+   "match": [
+    {
+     "natural": "peak"
+    }
+   ],
+   "terms": [
+    "peak",
+    "peaks",
+    "summit",
+    "mountain peak",
+    "mountain top",
+    "mountaintop",
+    "highest point"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "state_park",
+   "label": "State park",
+   "group": "outdoors",
+   "match": [
+    {
+     "leisure": [
+      "park",
+      "nature_reserve"
+     ],
+     "name~": "state park"
+    },
+    {
+     "boundary": [
+      "protected_area",
+      "national_park"
+     ],
+     "name~": "state park"
+    },
+    {
+     "tourism": "camp_site",
+     "name~": "state park"
+    }
+   ],
+   "terms": [
+    "state park",
+    "state parks",
+    "state forest",
+    "dcnr park"
+   ],
+   "id_presets": []
+  },
+  {
+   "id": "park",
+   "label": "Park",
+   "group": "outdoors",
+   "match": [
+    {
+     "leisure": "park"
+    },
+    {
+     "leisure": "nature_reserve"
+    },
+    {
+     "boundary": "national_park"
+    }
+   ],
+   "terms": [
+    "park",
+    "parks",
+    "city park",
+    "playground",
+    "dog park",
+    "nature preserve",
+    "green space",
+    "recreation area"
+   ],
+   "id_presets": [
+    "leisure/park",
+    "leisure/nature_reserve"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "trailhead",
+   "unnamed": true,
+   "label": "Trailhead",
+   "group": "outdoors",
+   "match": [
+    {
+     "highway": "trailhead"
+    }
+   ],
+   "terms": [
+    "trailhead",
+    "trail head",
+    "trail parking",
+    "hiking trail",
+    "hike",
+    "trail access"
+   ],
+   "id_presets": [
+    "highway/trailhead"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "boat_launch",
+   "unnamed": true,
+   "label": "Boat launch",
+   "group": "outdoors",
+   "match": [
+    {
+     "leisure": "slipway"
+    }
+   ],
+   "terms": [
+    "boat launch",
+    "boat ramp",
+    "boat access",
+    "kayak launch",
+    "launch ramp"
+   ],
+   "id_presets": [
+    "leisure/slipway"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "golf",
+   "label": "Golf course",
+   "group": "outdoors",
+   "match": [
+    {
+     "leisure": "golf_course"
+    }
+   ],
+   "terms": [
+    "golf",
+    "golf course",
+    "golf club",
+    "country club",
+    "driving range"
+   ],
+   "id_presets": [
+    "leisure/golf_course"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "museum",
+   "label": "Museum",
+   "group": "fun",
+   "match": [
+    {
+     "tourism": "museum"
+    }
+   ],
+   "terms": [
+    "museum",
+    "museums",
+    "history museum",
+    "art museum",
+    "historical society"
+   ],
+   "id_presets": [
+    "tourism/museum"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "attraction",
+   "label": "Attraction",
+   "group": "fun",
+   "match": [
+    {
+     "tourism": [
+      "attraction",
+      "theme_park",
+      "zoo",
+      "aquarium"
+     ]
+    }
+   ],
+   "terms": [
+    "attraction",
+    "attractions",
+    "things to do",
+    "tourist attraction",
+    "amusement park",
+    "theme park",
+    "zoo",
+    "aquarium",
+    "fun"
+   ],
+   "id_presets": [
+    "tourism/attraction",
+    "tourism/theme_park",
+    "tourism/zoo"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "cinema",
+   "label": "Movie theater",
+   "group": "fun",
+   "match": [
+    {
+     "amenity": "cinema"
+    }
+   ],
+   "terms": [
+    "movie theater",
+    "movie theatre",
+    "movies",
+    "cinema",
+    "drive in movie",
+    "drive in theater",
+    "movie"
+   ],
+   "id_presets": [
+    "amenity/cinema"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "gym",
+   "label": "Gym",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "fitness_centre"
+    },
+    {
+     "leisure": "sports_centre",
+     "sport~": "fitness"
+    }
+   ],
+   "terms": [
+    "gym",
+    "gyms",
+    "fitness center",
+    "fitness",
+    "workout",
+    "health club",
+    "ymca"
+   ],
+   "id_presets": [
+    "leisure/fitness_centre"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "place_of_worship",
+   "label": "Place of worship",
+   "group": "community",
+   "match": [
+    {
+     "amenity": "place_of_worship"
+    }
+   ],
+   "terms": [
+    "church",
+    "churches",
+    "place of worship",
+    "chapel",
+    "mosque",
+    "synagogue",
+    "temple",
+    "parish",
+    "meeting house"
+   ],
+   "id_presets": [
+    "amenity/place_of_worship"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "cemetery",
+   "label": "Cemetery",
+   "group": "community",
+   "match": [
+    {
+     "landuse": "cemetery"
+    },
+    {
+     "amenity": "grave_yard"
+    }
+   ],
+   "terms": [
+    "cemetery",
+    "cemeteries",
+    "graveyard",
+    "burial ground",
+    "memorial park"
+   ],
+   "id_presets": [
+    "landuse/cemetery",
+    "amenity/grave_yard"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "school",
+   "label": "School",
+   "group": "community",
+   "match": [
+    {
+     "amenity": "school"
+    }
+   ],
+   "terms": [
+    "school",
+    "schools",
+    "high school",
+    "middle school",
+    "elementary school",
+    "elementary",
+    "junior high",
+    "academy"
+   ],
+   "id_presets": [
+    "amenity/school"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "university",
+   "label": "College or university",
+   "group": "community",
+   "match": [
+    {
+     "amenity": [
+      "university",
+      "college"
+     ]
+    }
+   ],
+   "terms": [
+    "university",
+    "universities",
+    "college",
+    "colleges",
+    "campus",
+    "community college",
+    "state university"
+   ],
+   "id_presets": [
+    "amenity/university",
+    "amenity/college"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "airport",
+   "label": "Airport",
+   "group": "transport",
+   "match": [
+    {
+     "aeroway": "aerodrome",
+     "!access": [
+      "private",
+      "no"
+     ]
+    }
+   ],
+   "terms": [
+    "airport",
+    "airports",
+    "airfield",
+    "regional airport",
+    "international airport",
+    "flights"
+   ],
+   "id_presets": [
+    "aeroway/aerodrome"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "train_station",
+   "label": "Train station",
+   "group": "transport",
+   "match": [
+    {
+     "railway": [
+      "station",
+      "halt"
+     ],
+     "!station": [
+      "subway",
+      "light_rail"
+     ]
+    },
+    {
+     "public_transport": "station",
+     "train": "yes"
+    }
+   ],
+   "terms": [
+    "train station",
+    "train stations",
+    "amtrak",
+    "amtrak station",
+    "rail station",
+    "railroad station",
+    "regional rail",
+    "septa regional rail",
+    "train"
+   ],
+   "id_presets": [
+    "railway/station",
+    "public_transport/station_train"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "subway_station",
+   "label": "Subway or trolley station",
+   "group": "transport",
+   "match": [
+    {
+     "railway": "station",
+     "station": [
+      "subway",
+      "light_rail"
+     ]
+    },
+    {
+     "public_transport": "station",
+     "subway": "yes"
+    },
+    {
+     "public_transport": "station",
+     "light_rail": "yes"
+    }
+   ],
+   "terms": [
+    "subway station",
+    "metro station",
+    "el station",
+    "trolley station",
+    "light rail station",
+    "t station"
+   ],
+   "id_presets": [
+    "public_transport/station_subway"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "bus_station",
+   "label": "Bus station",
+   "group": "transport",
+   "match": [
+    {
+     "amenity": "bus_station"
+    },
+    {
+     "public_transport": "station",
+     "bus": "yes",
+     "!train": "yes"
+    }
+   ],
+   "terms": [
+    "bus station",
+    "bus terminal",
+    "greyhound",
+    "bus depot",
+    "megabus",
+    "intercity bus",
+    "transit center"
+   ],
+   "id_presets": [
+    "amenity/bus_station"
+   ],
+   "id_terms_exclude": []
+  },
+  {
+   "id": "amenity_animal_boarding",
+   "generated": true,
+   "label": "Animal Boarding Facility",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "animal_boarding"
+    }
+   ],
+   "terms": [
+    "animal boarding facility",
+    "animal boarding facilities"
+   ],
+   "id_presets": [
+    "amenity/animal_boarding"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_animal_shelter",
+   "generated": true,
+   "label": "Animal Shelter",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "animal_shelter"
+    }
+   ],
+   "terms": [
+    "animal shelter",
+    "animal shelters"
+   ],
+   "id_presets": [
+    "amenity/animal_shelter"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_arts_centre",
+   "generated": true,
+   "label": "Arts Center",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "arts_centre"
+    }
+   ],
+   "terms": [
+    "arts center",
+    "arts centers"
+   ],
+   "id_presets": [
+    "amenity/arts_centre"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_bicycle_rental",
+   "generated": true,
+   "label": "Bicycle Rental",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "bicycle_rental"
+    }
+   ],
+   "terms": [
+    "bicycle rental",
+    "bicycle rentals"
+   ],
+   "id_presets": [
+    "amenity/bicycle_rental"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_boat_rental",
+   "generated": true,
+   "label": "Boat Rental",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "boat_rental"
+    }
+   ],
+   "terms": [
+    "boat rental",
+    "boat rentals"
+   ],
+   "id_presets": [
+    "amenity/boat_rental"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_casino",
+   "generated": true,
+   "label": "Casino",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "casino"
+    }
+   ],
+   "terms": [
+    "casino",
+    "casinos"
+   ],
+   "id_presets": [
+    "amenity/casino"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_childcare",
+   "generated": true,
+   "label": "Nursery / Childcare",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "childcare"
+    }
+   ],
+   "terms": [
+    "childcare",
+    "childcares"
+   ],
+   "id_presets": [
+    "amenity/childcare"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_community_centre",
+   "generated": true,
+   "label": "Community Center",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "community_centre"
+    }
+   ],
+   "terms": [
+    "community center",
+    "community centers"
+   ],
+   "id_presets": [
+    "amenity/community_centre"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_conference_centre",
+   "generated": true,
+   "label": "Convention Center",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "conference_centre"
+    }
+   ],
+   "terms": [
+    "convention center",
+    "convention centers"
+   ],
+   "id_presets": [
+    "amenity/conference_centre"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_dojo",
+   "generated": true,
+   "label": "Dojo / Martial Arts Academy",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "dojo"
+    }
+   ],
+   "terms": [
+    "dojo",
+    "dojos",
+    "martial arts academy",
+    "martial arts academies"
+   ],
+   "id_presets": [
+    "amenity/dojo"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_events_venue",
+   "generated": true,
+   "label": "Events Venue",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "events_venue"
+    }
+   ],
+   "terms": [
+    "events venue",
+    "events venues"
+   ],
+   "id_presets": [
+    "amenity/events_venue"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_nightclub",
+   "generated": true,
+   "label": "Nightclub",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "nightclub"
+    }
+   ],
+   "terms": [
+    "nightclub",
+    "nightclubs"
+   ],
+   "id_presets": [
+    "amenity/nightclub"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_ranger_station",
+   "generated": true,
+   "label": "Ranger Station",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "ranger_station"
+    }
+   ],
+   "terms": [
+    "ranger station",
+    "ranger stations"
+   ],
+   "id_presets": [
+    "amenity/ranger_station"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_social_centre",
+   "generated": true,
+   "label": "Social Center",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "social_centre"
+    }
+   ],
+   "terms": [
+    "social center",
+    "social centers"
+   ],
+   "id_presets": [
+    "amenity/social_centre"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_theatre",
+   "generated": true,
+   "label": "Theater",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "theatre"
+    }
+   ],
+   "terms": [
+    "theater",
+    "theaters"
+   ],
+   "id_presets": [
+    "amenity/theatre"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_waste_transfer_station",
+   "generated": true,
+   "label": "Waste Transfer Station",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "waste_transfer_station"
+    }
+   ],
+   "terms": [
+    "waste transfer station",
+    "waste transfer stations"
+   ],
+   "id_presets": [
+    "amenity/waste_transfer_station"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "amenity_weighbridge",
+   "generated": true,
+   "label": "Truck Scale",
+   "group": "services",
+   "match": [
+    {
+     "amenity": "weighbridge"
+    }
+   ],
+   "terms": [
+    "truck scale",
+    "truck scales"
+   ],
+   "id_presets": [
+    "amenity/weighbridge"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_agricultural_engines",
+   "generated": true,
+   "label": "Agricultural Engines Mechanic",
+   "group": "services",
+   "match": [
+    {
+     "craft": "agricultural_engines"
+    }
+   ],
+   "terms": [
+    "agricultural engines mechanic",
+    "agricultural engines mechanics"
+   ],
+   "id_presets": [
+    "craft/agricultural_engines"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_carpenter",
+   "generated": true,
+   "label": "Carpenter",
+   "group": "services",
+   "match": [
+    {
+     "craft": "carpenter"
+    }
+   ],
+   "terms": [
+    "carpenter",
+    "carpenters"
+   ],
+   "id_presets": [
+    "craft/carpenter"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_caterer",
+   "generated": true,
+   "label": "Caterer",
+   "group": "services",
+   "match": [
+    {
+     "craft": "caterer"
+    }
+   ],
+   "terms": [
+    "caterer",
+    "caterers"
+   ],
+   "id_presets": [
+    "craft/caterer"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_cleaning",
+   "generated": true,
+   "label": "Cleaning Service",
+   "group": "services",
+   "match": [
+    {
+     "craft": "cleaning"
+    }
+   ],
+   "terms": [
+    "cleaning service",
+    "cleaning services"
+   ],
+   "id_presets": [
+    "craft/cleaning"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_distillery",
+   "generated": true,
+   "label": "Distillery",
+   "group": "services",
+   "match": [
+    {
+     "craft": "distillery"
+    }
+   ],
+   "terms": [
+    "distillery",
+    "distilleries"
+   ],
+   "id_presets": [
+    "craft/distillery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_electrician",
+   "generated": true,
+   "label": "Electrician",
+   "group": "services",
+   "match": [
+    {
+     "craft": "electrician"
+    }
+   ],
+   "terms": [
+    "electrician",
+    "electricians"
+   ],
+   "id_presets": [
+    "craft/electrician"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_electronics_repair",
+   "generated": true,
+   "label": "Electronics Repair Shop",
+   "group": "services",
+   "match": [
+    {
+     "craft": "electronics_repair"
+    }
+   ],
+   "terms": [
+    "electronics repair shop",
+    "electronics repairs",
+    "electronics repair store",
+    "electronics repair stores",
+    "electronics repair shops"
+   ],
+   "id_presets": [
+    "craft/electronics_repair"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_floorer",
+   "generated": true,
+   "label": "Floorer",
+   "group": "services",
+   "match": [
+    {
+     "craft": "floorer"
+    }
+   ],
+   "terms": [
+    "floorer",
+    "floorers"
+   ],
+   "id_presets": [
+    "craft/floorer"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_gardener",
+   "generated": true,
+   "label": "Gardener",
+   "group": "services",
+   "match": [
+    {
+     "craft": "gardener"
+    }
+   ],
+   "terms": [
+    "gardener",
+    "gardeners"
+   ],
+   "id_presets": [
+    "craft/gardener"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_glaziery",
+   "generated": true,
+   "label": "Glaziery",
+   "group": "services",
+   "match": [
+    {
+     "craft": "glaziery"
+    }
+   ],
+   "terms": [
+    "glaziery",
+    "glazieries"
+   ],
+   "id_presets": [
+    "craft/glaziery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_hvac",
+   "generated": true,
+   "label": "HVAC Workplace",
+   "group": "services",
+   "match": [
+    {
+     "craft": "hvac"
+    }
+   ],
+   "terms": [
+    "hvac workplace",
+    "hvac workplaces"
+   ],
+   "id_presets": [
+    "craft/hvac"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_metal_construction",
+   "generated": true,
+   "label": "Metalworker",
+   "group": "services",
+   "match": [
+    {
+     "craft": "metal_construction"
+    }
+   ],
+   "terms": [
+    "metalworker",
+    "metalworkers"
+   ],
+   "id_presets": [
+    "craft/metal_construction"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_painter",
+   "generated": true,
+   "label": "Painter",
+   "group": "services",
+   "match": [
+    {
+     "craft": "painter"
+    }
+   ],
+   "terms": [
+    "painter",
+    "painters"
+   ],
+   "id_presets": [
+    "craft/painter"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_photographer",
+   "generated": true,
+   "label": "Photographer",
+   "group": "services",
+   "match": [
+    {
+     "craft": "photographer"
+    }
+   ],
+   "terms": [
+    "photographer",
+    "photographers"
+   ],
+   "id_presets": [
+    "craft/photographer"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_plumber",
+   "generated": true,
+   "label": "Plumber",
+   "group": "services",
+   "match": [
+    {
+     "craft": "plumber"
+    }
+   ],
+   "terms": [
+    "plumber",
+    "plumbers"
+   ],
+   "id_presets": [
+    "craft/plumber"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_pottery",
+   "generated": true,
+   "label": "Pottery Maker",
+   "group": "services",
+   "match": [
+    {
+     "craft": "pottery"
+    }
+   ],
+   "terms": [
+    "pottery maker",
+    "pottery makers"
+   ],
+   "id_presets": [
+    "craft/pottery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_roofer",
+   "generated": true,
+   "label": "Roofer",
+   "group": "services",
+   "match": [
+    {
+     "craft": "roofer"
+    }
+   ],
+   "terms": [
+    "roofer",
+    "roofers"
+   ],
+   "id_presets": [
+    "craft/roofer"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_sawmill",
+   "generated": true,
+   "label": "Sawmill",
+   "group": "services",
+   "match": [
+    {
+     "craft": "sawmill"
+    }
+   ],
+   "terms": [
+    "sawmill",
+    "sawmills"
+   ],
+   "id_presets": [
+    "craft/sawmill"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_signmaker",
+   "generated": true,
+   "label": "Signmaker",
+   "group": "services",
+   "match": [
+    {
+     "craft": "signmaker"
+    }
+   ],
+   "terms": [
+    "signmaker",
+    "signmakers"
+   ],
+   "id_presets": [
+    "craft/signmaker"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_stonemason",
+   "generated": true,
+   "label": "Stonemason",
+   "group": "services",
+   "match": [
+    {
+     "craft": "stonemason"
+    }
+   ],
+   "terms": [
+    "stonemason",
+    "stonemasons"
+   ],
+   "id_presets": [
+    "craft/stonemason"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "craft_window_construction",
+   "generated": true,
+   "label": "Window Construction",
+   "group": "services",
+   "match": [
+    {
+     "craft": "window_construction"
+    }
+   ],
+   "terms": [
+    "window construction",
+    "window constructions"
+   ],
+   "id_presets": [
+    "craft/window_construction"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_alternative",
+   "generated": true,
+   "label": "Alternative Medicine",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "alternative"
+    }
+   ],
+   "terms": [
+    "alternative medicine",
+    "alternative medicines"
+   ],
+   "id_presets": [
+    "healthcare/alternative"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_blood_donation",
+   "generated": true,
+   "label": "Blood Donation Center",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "blood_donation"
+    }
+   ],
+   "terms": [
+    "blood donation center",
+    "blood donation centers"
+   ],
+   "id_presets": [
+    "healthcare/blood_donation"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_counselling",
+   "generated": true,
+   "label": "Counseling Center",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "counselling"
+    }
+   ],
+   "terms": [
+    "counseling center",
+    "counseling centers"
+   ],
+   "id_presets": [
+    "healthcare/counselling"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_hospice",
+   "generated": true,
+   "label": "Hospice",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "hospice"
+    }
+   ],
+   "terms": [
+    "hospice",
+    "hospices"
+   ],
+   "id_presets": [
+    "healthcare/hospice"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_laboratory",
+   "generated": true,
+   "label": "Medical Laboratory",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "laboratory"
+    }
+   ],
+   "terms": [
+    "medical laboratory",
+    "medical laboratories"
+   ],
+   "id_presets": [
+    "healthcare/laboratory"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_optometrist",
+   "generated": true,
+   "label": "Optometrist",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "optometrist"
+    }
+   ],
+   "terms": [
+    "optometrist",
+    "optometrists"
+   ],
+   "id_presets": [
+    "healthcare/optometrist"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_physiotherapist",
+   "generated": true,
+   "label": "Physical Therapist",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "physiotherapist"
+    }
+   ],
+   "terms": [
+    "physical therapist",
+    "physical therapists"
+   ],
+   "id_presets": [
+    "healthcare/physiotherapist"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_podiatrist",
+   "generated": true,
+   "label": "Podiatrist",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "podiatrist"
+    }
+   ],
+   "terms": [
+    "podiatrist",
+    "podiatrists"
+   ],
+   "id_presets": [
+    "healthcare/podiatrist"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_psychotherapist",
+   "generated": true,
+   "label": "Psychotherapist",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "psychotherapist"
+    }
+   ],
+   "terms": [
+    "psychotherapist",
+    "psychotherapists"
+   ],
+   "id_presets": [
+    "healthcare/psychotherapist"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "healthcare_rehabilitation",
+   "generated": true,
+   "label": "Rehabilitation Facility",
+   "group": "health",
+   "match": [
+    {
+     "healthcare": "rehabilitation"
+    }
+   ],
+   "terms": [
+    "rehabilitation facility",
+    "rehabilitation facilities"
+   ],
+   "id_presets": [
+    "healthcare/rehabilitation"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_amusement_arcade",
+   "generated": true,
+   "label": "Amusement Arcade",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "amusement_arcade"
+    }
+   ],
+   "terms": [
+    "amusement arcade",
+    "amusement arcades"
+   ],
+   "id_presets": [
+    "leisure/amusement_arcade"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_bowling_alley",
+   "generated": true,
+   "label": "Bowling Alley",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "bowling_alley"
+    }
+   ],
+   "terms": [
+    "bowling alley",
+    "bowling alleys"
+   ],
+   "id_presets": [
+    "leisure/bowling_alley"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_dance",
+   "generated": true,
+   "label": "Dance Hall",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "dance"
+    }
+   ],
+   "terms": [
+    "dance hall",
+    "dance halls"
+   ],
+   "id_presets": [
+    "leisure/dance"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_disc_golf_course",
+   "generated": true,
+   "label": "Disc Golf Course",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "disc_golf_course"
+    }
+   ],
+   "terms": [
+    "disc golf course",
+    "disc golf courses"
+   ],
+   "id_presets": [
+    "leisure/disc_golf_course"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_escape_game",
+   "generated": true,
+   "label": "Escape Room",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "escape_game"
+    }
+   ],
+   "terms": [
+    "escape room",
+    "escape rooms"
+   ],
+   "id_presets": [
+    "leisure/escape_game"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_fishing",
+   "generated": true,
+   "label": "Fishing Spot",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "fishing"
+    }
+   ],
+   "terms": [
+    "fishing spot",
+    "fishing spots"
+   ],
+   "id_presets": [
+    "leisure/fishing"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_horse_riding",
+   "generated": true,
+   "label": "Horseback Riding Center",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "horse_riding"
+    }
+   ],
+   "terms": [
+    "horseback riding center",
+    "horseback riding centers"
+   ],
+   "id_presets": [
+    "leisure/horse_riding"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_ice_rink",
+   "generated": true,
+   "label": "Ice Rink",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "ice_rink"
+    }
+   ],
+   "terms": [
+    "ice rink",
+    "ice rinks"
+   ],
+   "id_presets": [
+    "leisure/ice_rink"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_indoor_play",
+   "generated": true,
+   "label": "Indoor Play Center",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "indoor_play"
+    }
+   ],
+   "terms": [
+    "indoor play center",
+    "indoor play centers"
+   ],
+   "id_presets": [
+    "leisure/indoor_play"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_miniature_golf",
+   "generated": true,
+   "label": "Miniature Golf",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "miniature_golf"
+    }
+   ],
+   "terms": [
+    "miniature golf",
+    "miniature golfs"
+   ],
+   "id_presets": [
+    "leisure/miniature_golf"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_sports_hall",
+   "generated": true,
+   "label": "Gymnasium",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "sports_hall"
+    }
+   ],
+   "terms": [
+    "gymnasium",
+    "gymnasiums"
+   ],
+   "id_presets": [
+    "leisure/sports_hall"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_summer_camp",
+   "generated": true,
+   "label": "Summer Camp",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "summer_camp"
+    }
+   ],
+   "terms": [
+    "summer camp",
+    "summer camps"
+   ],
+   "id_presets": [
+    "leisure/summer_camp"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_trampoline_park",
+   "generated": true,
+   "label": "Trampoline Park",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "trampoline_park"
+    }
+   ],
+   "terms": [
+    "trampoline park",
+    "trampoline parks"
+   ],
+   "id_presets": [
+    "leisure/trampoline_park"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "leisure_water_park",
+   "generated": true,
+   "label": "Water Park",
+   "group": "fun",
+   "match": [
+    {
+     "leisure": "water_park"
+    }
+   ],
+   "terms": [
+    "water park",
+    "water parks"
+   ],
+   "id_presets": [
+    "leisure/water_park"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_accountant",
+   "generated": true,
+   "label": "Accountant Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "accountant"
+    }
+   ],
+   "terms": [
+    "accountant office",
+    "accountant offices"
+   ],
+   "id_presets": [
+    "office/accountant"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_advertising_agency",
+   "generated": true,
+   "label": "Advertising Agency",
+   "group": "services",
+   "match": [
+    {
+     "office": "advertising_agency"
+    }
+   ],
+   "terms": [
+    "advertising agency",
+    "advertising agencies"
+   ],
+   "id_presets": [
+    "office/advertising_agency"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_architect",
+   "generated": true,
+   "label": "Architect Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "architect"
+    }
+   ],
+   "terms": [
+    "architect office",
+    "architect offices"
+   ],
+   "id_presets": [
+    "office/architect"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_association",
+   "generated": true,
+   "label": "Nonprofit Organization Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "association"
+    }
+   ],
+   "terms": [
+    "nonprofit organization office",
+    "nonprofit organization offices"
+   ],
+   "id_presets": [
+    "office/association"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_charity",
+   "generated": true,
+   "label": "Charity Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "charity"
+    }
+   ],
+   "terms": [
+    "charity office",
+    "charity offices"
+   ],
+   "id_presets": [
+    "office/charity"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_consulting",
+   "generated": true,
+   "label": "Consultancy Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "consulting"
+    }
+   ],
+   "terms": [
+    "consultancy office",
+    "consultancy offices"
+   ],
+   "id_presets": [
+    "office/consulting"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_coworking",
+   "generated": true,
+   "label": "Coworking Space",
+   "group": "services",
+   "match": [
+    {
+     "office": "coworking"
+    }
+   ],
+   "terms": [
+    "coworking space",
+    "coworking spaces"
+   ],
+   "id_presets": [
+    "office/coworking"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_educational_institution",
+   "generated": true,
+   "label": "Educational Institution",
+   "group": "services",
+   "match": [
+    {
+     "office": "educational_institution"
+    }
+   ],
+   "terms": [
+    "educational institution",
+    "educational institutions"
+   ],
+   "id_presets": [
+    "office/educational_institution"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_employment_agency",
+   "generated": true,
+   "label": "Employment Agency",
+   "group": "services",
+   "match": [
+    {
+     "office": "employment_agency"
+    }
+   ],
+   "terms": [
+    "employment agency",
+    "employment agencies"
+   ],
+   "id_presets": [
+    "office/employment_agency"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_energy_supplier",
+   "generated": true,
+   "label": "Energy Supplier Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "energy_supplier"
+    }
+   ],
+   "terms": [
+    "energy supplier office",
+    "energy supplier offices"
+   ],
+   "id_presets": [
+    "office/energy_supplier"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_engineer",
+   "generated": true,
+   "label": "Engineering Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "engineer"
+    }
+   ],
+   "terms": [
+    "engineering office",
+    "engineering offices"
+   ],
+   "id_presets": [
+    "office/engineer"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_estate_agent",
+   "generated": true,
+   "label": "Real Estate Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "estate_agent"
+    }
+   ],
+   "terms": [
+    "real estate office",
+    "real estate offices"
+   ],
+   "id_presets": [
+    "office/estate_agent"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_financial",
+   "generated": true,
+   "label": "Financial Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "financial"
+    }
+   ],
+   "terms": [
+    "financial office",
+    "financial offices"
+   ],
+   "id_presets": [
+    "office/financial"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_financial_advisor",
+   "generated": true,
+   "label": "Financial Advisor",
+   "group": "services",
+   "match": [
+    {
+     "office": "financial_advisor"
+    }
+   ],
+   "terms": [
+    "financial advisor",
+    "financial advisors"
+   ],
+   "id_presets": [
+    "office/financial_advisor"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_forestry",
+   "generated": true,
+   "label": "Forestry Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "forestry"
+    }
+   ],
+   "terms": [
+    "forestry office",
+    "forestry offices"
+   ],
+   "id_presets": [
+    "office/forestry"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_insurance",
+   "generated": true,
+   "label": "Insurance Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "insurance"
+    }
+   ],
+   "terms": [
+    "insurance office",
+    "insurance offices"
+   ],
+   "id_presets": [
+    "office/insurance"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_it",
+   "generated": true,
+   "label": "Information Technology Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "it"
+    }
+   ],
+   "terms": [
+    "information technology office",
+    "information technology offices"
+   ],
+   "id_presets": [
+    "office/it"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_lawyer",
+   "generated": true,
+   "label": "Law Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "lawyer"
+    }
+   ],
+   "terms": [
+    "law office",
+    "law offices"
+   ],
+   "id_presets": [
+    "office/lawyer"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_newspaper",
+   "generated": true,
+   "label": "Newspaper Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "newspaper"
+    }
+   ],
+   "terms": [
+    "newspaper office",
+    "newspaper offices"
+   ],
+   "id_presets": [
+    "office/newspaper"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_ngo",
+   "generated": true,
+   "label": "NGO Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "ngo"
+    }
+   ],
+   "terms": [
+    "ngo office",
+    "ngo offices"
+   ],
+   "id_presets": [
+    "office/ngo"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_notary",
+   "generated": true,
+   "label": "Notary Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "notary"
+    }
+   ],
+   "terms": [
+    "notary office",
+    "notary offices"
+   ],
+   "id_presets": [
+    "office/notary"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_property_management",
+   "generated": true,
+   "label": "Property Management / Leasing Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "property_management"
+    }
+   ],
+   "terms": [
+    "property management office",
+    "property management offices",
+    "leasing office",
+    "leasing offices"
+   ],
+   "id_presets": [
+    "office/property_management"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_religion",
+   "generated": true,
+   "label": "Religious Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "religion"
+    }
+   ],
+   "terms": [
+    "religious office",
+    "religious offices"
+   ],
+   "id_presets": [
+    "office/religion"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_research",
+   "generated": true,
+   "label": "Research Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "research"
+    }
+   ],
+   "terms": [
+    "research office",
+    "research offices"
+   ],
+   "id_presets": [
+    "office/research"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_tax_advisor",
+   "generated": true,
+   "label": "Tax Advisor Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "tax_advisor"
+    }
+   ],
+   "terms": [
+    "tax advisor office",
+    "tax advisor offices"
+   ],
+   "id_presets": [
+    "office/tax_advisor"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_telecommunication",
+   "generated": true,
+   "label": "Telecom Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "telecommunication"
+    }
+   ],
+   "terms": [
+    "telecom office",
+    "telecom offices"
+   ],
+   "id_presets": [
+    "office/telecommunication"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_therapist",
+   "generated": true,
+   "label": "Therapist Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "therapist"
+    }
+   ],
+   "terms": [
+    "therapist office",
+    "therapist offices"
+   ],
+   "id_presets": [
+    "office/therapist"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "office_water_utility",
+   "generated": true,
+   "label": "Water Utility Office",
+   "group": "services",
+   "match": [
+    {
+     "office": "water_utility"
+    }
+   ],
+   "terms": [
+    "water utility office",
+    "water utility offices"
+   ],
+   "id_presets": [
+    "office/water_utility"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_agrarian",
+   "generated": true,
+   "label": "Farm Supply Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "agrarian"
+    }
+   ],
+   "terms": [
+    "farm supply shop",
+    "farm supplies",
+    "farm supply store",
+    "farm supply stores",
+    "farm supply shops"
+   ],
+   "id_presets": [
+    "shop/agrarian"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_antiques",
+   "generated": true,
+   "label": "Antique Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "antiques"
+    }
+   ],
+   "terms": [
+    "antique shop",
+    "antiques",
+    "antique store",
+    "antique stores",
+    "antique shops",
+    "antique mall",
+    "antique malls",
+    "antiques mall"
+   ],
+   "id_presets": [
+    "shop/antiques"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_appliance",
+   "generated": true,
+   "label": "Appliance Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "appliance"
+    }
+   ],
+   "terms": [
+    "appliance store",
+    "appliances",
+    "appliance shop",
+    "appliance stores",
+    "appliance shops"
+   ],
+   "id_presets": [
+    "shop/appliance"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_art",
+   "generated": true,
+   "label": "Art Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "art"
+    }
+   ],
+   "terms": [
+    "art store",
+    "art shop",
+    "art stores",
+    "art shops"
+   ],
+   "id_presets": [
+    "shop/art"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_bag",
+   "generated": true,
+   "label": "Bag / Luggage Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "bag"
+    }
+   ],
+   "terms": [
+    "bag store",
+    "bags",
+    "bag shop",
+    "bag stores",
+    "bag shops",
+    "luggage store",
+    "luggage shop",
+    "luggage stores",
+    "luggage shops"
+   ],
+   "id_presets": [
+    "shop/bag"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_beauty",
+   "generated": true,
+   "label": "Beauty Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "beauty"
+    }
+   ],
+   "terms": [
+    "beauty shop",
+    "beauty store",
+    "beauty stores",
+    "beauty shops",
+    "nail salon",
+    "nail salons",
+    "nails",
+    "beauty salon",
+    "beauty salons"
+   ],
+   "id_presets": [
+    "shop/beauty"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_bed",
+   "generated": true,
+   "label": "Bedding / Mattress Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "bed"
+    }
+   ],
+   "terms": [
+    "bedding store",
+    "beddings",
+    "bedding shop",
+    "bedding stores",
+    "bedding shops",
+    "mattress store",
+    "mattress",
+    "mattress shop",
+    "mattress stores",
+    "mattress shops"
+   ],
+   "id_presets": [
+    "shop/bed"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_bicycle",
+   "generated": true,
+   "label": "Bicycle Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "bicycle"
+    }
+   ],
+   "terms": [
+    "bicycle shop",
+    "bicycles",
+    "bicycle store",
+    "bicycle stores",
+    "bicycle shops",
+    "bike shop",
+    "bike shops",
+    "bike store",
+    "bike stores"
+   ],
+   "id_presets": [
+    "shop/bicycle"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_boat",
+   "generated": true,
+   "label": "Boat Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "boat"
+    }
+   ],
+   "terms": [
+    "boat store",
+    "boats",
+    "boat shop",
+    "boat stores",
+    "boat shops"
+   ],
+   "id_presets": [
+    "shop/boat"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_books",
+   "generated": true,
+   "label": "Bookstore",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "books"
+    }
+   ],
+   "terms": [
+    "bookstore",
+    "bookstores",
+    "book store",
+    "book stores",
+    "books",
+    "book shop"
+   ],
+   "id_presets": [
+    "shop/books"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_butcher",
+   "generated": true,
+   "label": "Butcher",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "butcher"
+    }
+   ],
+   "terms": [
+    "butcher",
+    "butchers"
+   ],
+   "id_presets": [
+    "shop/butcher"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_candles",
+   "generated": true,
+   "label": "Candle Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "candles"
+    }
+   ],
+   "terms": [
+    "candle shop",
+    "candles",
+    "candle store",
+    "candle stores",
+    "candle shops"
+   ],
+   "id_presets": [
+    "shop/candles"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_cannabis",
+   "generated": true,
+   "label": "Cannabis Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "cannabis"
+    }
+   ],
+   "terms": [
+    "cannabis shop",
+    "cannabis",
+    "cannabis store",
+    "cannabis stores",
+    "cannabis shops"
+   ],
+   "id_presets": [
+    "shop/cannabis"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_carpet",
+   "generated": true,
+   "label": "Carpet Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "carpet"
+    }
+   ],
+   "terms": [
+    "carpet store",
+    "carpets",
+    "carpet shop",
+    "carpet stores",
+    "carpet shops"
+   ],
+   "id_presets": [
+    "shop/carpet"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_charity",
+   "generated": true,
+   "label": "Charity Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "charity"
+    }
+   ],
+   "terms": [
+    "charity store",
+    "charities",
+    "charity shop",
+    "charity stores",
+    "charity shops"
+   ],
+   "id_presets": [
+    "shop/charity"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_chocolate",
+   "generated": true,
+   "label": "Chocolate Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "chocolate"
+    }
+   ],
+   "terms": [
+    "chocolate store",
+    "chocolates",
+    "chocolate shop",
+    "chocolate stores",
+    "chocolate shops"
+   ],
+   "id_presets": [
+    "shop/chocolate"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_coffee",
+   "generated": true,
+   "label": "Coffee Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "coffee"
+    }
+   ],
+   "terms": [
+    "coffee store",
+    "coffee stores"
+   ],
+   "id_presets": [
+    "shop/coffee"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_collector",
+   "generated": true,
+   "label": "Collectibles Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "collector"
+    }
+   ],
+   "terms": [
+    "collectibles shop",
+    "collectibles",
+    "collectibles store",
+    "collectibles stores",
+    "collectibles shops"
+   ],
+   "id_presets": [
+    "shop/collector"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_confectionery",
+   "generated": true,
+   "label": "Candy Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "confectionery"
+    }
+   ],
+   "terms": [
+    "candy store",
+    "candies",
+    "candy shop",
+    "candy stores",
+    "candy shops"
+   ],
+   "id_presets": [
+    "shop/confectionery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_copyshop",
+   "generated": true,
+   "label": "Copy Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "copyshop"
+    }
+   ],
+   "terms": [
+    "copy store",
+    "copy shop",
+    "copy stores",
+    "copy shops"
+   ],
+   "id_presets": [
+    "shop/copyshop"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_cosmetics",
+   "generated": true,
+   "label": "Cosmetics Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "cosmetics"
+    }
+   ],
+   "terms": [
+    "cosmetics store",
+    "cosmetics shop",
+    "cosmetics stores",
+    "cosmetics shops"
+   ],
+   "id_presets": [
+    "shop/cosmetics"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_country_store",
+   "generated": true,
+   "label": "Rural Supplies Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "country_store"
+    }
+   ],
+   "terms": [
+    "rural supplies store",
+    "rural supplies",
+    "rural supplies shop",
+    "rural supplies stores",
+    "rural supplies shops"
+   ],
+   "id_presets": [
+    "shop/country_store"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_craft",
+   "generated": true,
+   "label": "Arts & Crafts Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "craft"
+    }
+   ],
+   "terms": [
+    "arts and crafts store",
+    "arts and crafts",
+    "arts and crafts shop",
+    "arts and crafts stores",
+    "arts and crafts shops",
+    "craft store",
+    "craft stores",
+    "craft shop",
+    "crafts store",
+    "hobby store"
+   ],
+   "id_presets": [
+    "shop/craft"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_dairy",
+   "generated": true,
+   "label": "Dairy Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "dairy"
+    }
+   ],
+   "terms": [
+    "dairy store",
+    "dairies",
+    "dairy shop",
+    "dairy stores",
+    "dairy shops"
+   ],
+   "id_presets": [
+    "shop/dairy"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_e-cigarette",
+   "generated": true,
+   "label": "E-Cigarette Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "e-cigarette"
+    }
+   ],
+   "terms": [
+    "e-cigarette shop",
+    "e-cigarettes",
+    "e-cigarette store",
+    "e-cigarette stores",
+    "e-cigarette shops"
+   ],
+   "id_presets": [
+    "shop/e-cigarette"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_electrical",
+   "generated": true,
+   "label": "Electrical Equipment Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "electrical"
+    }
+   ],
+   "terms": [
+    "electrical equipment store",
+    "electrical equipments",
+    "electrical equipment shop",
+    "electrical equipment stores",
+    "electrical equipment shops"
+   ],
+   "id_presets": [
+    "shop/electrical"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_erotic",
+   "generated": true,
+   "label": "Erotic Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "erotic"
+    }
+   ],
+   "terms": [
+    "erotic store",
+    "erotic shop",
+    "erotic stores",
+    "erotic shops"
+   ],
+   "id_presets": [
+    "shop/erotic"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_fabric",
+   "generated": true,
+   "label": "Fabric Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "fabric"
+    }
+   ],
+   "terms": [
+    "fabric store",
+    "fabric shop",
+    "fabric stores",
+    "fabric shops"
+   ],
+   "id_presets": [
+    "shop/fabric"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_fashion_accessories",
+   "generated": true,
+   "label": "Fashion Accessories Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "fashion_accessories"
+    }
+   ],
+   "terms": [
+    "fashion accessories store",
+    "fashion accessories",
+    "fashion accessories shop",
+    "fashion accessories stores",
+    "fashion accessories shops"
+   ],
+   "id_presets": [
+    "shop/fashion_accessories"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_flooring",
+   "generated": true,
+   "label": "Flooring Supply Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "flooring"
+    }
+   ],
+   "terms": [
+    "flooring supply shop",
+    "flooring supplies",
+    "flooring supply store",
+    "flooring supply stores",
+    "flooring supply shops"
+   ],
+   "id_presets": [
+    "shop/flooring"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_florist",
+   "generated": true,
+   "label": "Florist",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "florist"
+    }
+   ],
+   "terms": [
+    "florist",
+    "florists"
+   ],
+   "id_presets": [
+    "shop/florist"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_frame",
+   "generated": true,
+   "label": "Framing Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "frame"
+    }
+   ],
+   "terms": [
+    "framing shop",
+    "framings",
+    "framing store",
+    "framing stores",
+    "framing shops"
+   ],
+   "id_presets": [
+    "shop/frame"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_funeral_directors",
+   "generated": true,
+   "label": "Funeral Home",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "funeral_directors"
+    }
+   ],
+   "terms": [
+    "funeral home",
+    "funeral homes"
+   ],
+   "id_presets": [
+    "shop/funeral_directors"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_furniture",
+   "generated": true,
+   "label": "Furniture Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "furniture"
+    }
+   ],
+   "terms": [
+    "furniture store",
+    "furniture shop",
+    "furniture stores",
+    "furniture shops",
+    "furniture"
+   ],
+   "id_presets": [
+    "shop/furniture"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_games",
+   "generated": true,
+   "label": "Tabletop Game Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "games"
+    }
+   ],
+   "terms": [
+    "tabletop game store",
+    "tabletop games",
+    "tabletop game shop",
+    "tabletop game stores",
+    "tabletop game shops"
+   ],
+   "id_presets": [
+    "shop/games"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_gift",
+   "generated": true,
+   "label": "Gift Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "gift"
+    }
+   ],
+   "terms": [
+    "gift shop",
+    "gifts",
+    "gift store",
+    "gift stores",
+    "gift shops"
+   ],
+   "id_presets": [
+    "shop/gift"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_hairdresser",
+   "generated": true,
+   "label": "Hairdresser",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "hairdresser"
+    }
+   ],
+   "terms": [
+    "hairdresser",
+    "hairdressers",
+    "barber",
+    "barbers",
+    "barber shop",
+    "barber shops",
+    "barbershop",
+    "barbershops",
+    "hair salon",
+    "hair salons"
+   ],
+   "id_presets": [
+    "shop/hairdresser"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_hairdresser_supply",
+   "generated": true,
+   "label": "Hairdresser Supply Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "hairdresser_supply"
+    }
+   ],
+   "terms": [
+    "hairdresser supply store",
+    "hairdresser supplies",
+    "hairdresser supply shop",
+    "hairdresser supply stores",
+    "hairdresser supply shops"
+   ],
+   "id_presets": [
+    "shop/hairdresser_supply"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_health_food",
+   "generated": true,
+   "label": "Health Food Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "health_food"
+    }
+   ],
+   "terms": [
+    "health food store",
+    "health food shop",
+    "health food stores",
+    "health food shops"
+   ],
+   "id_presets": [
+    "shop/health_food"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_hearing_aids",
+   "generated": true,
+   "label": "Hearing Aids Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "hearing_aids"
+    }
+   ],
+   "terms": [
+    "hearing aids store",
+    "hearing aids",
+    "hearing aids shop",
+    "hearing aids stores",
+    "hearing aids shops"
+   ],
+   "id_presets": [
+    "shop/hearing_aids"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_houseware",
+   "generated": true,
+   "label": "Houseware Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "houseware"
+    }
+   ],
+   "terms": [
+    "houseware store",
+    "housewares",
+    "houseware shop",
+    "houseware stores",
+    "houseware shops"
+   ],
+   "id_presets": [
+    "shop/houseware"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_interior_decoration",
+   "generated": true,
+   "label": "Interior Decoration Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "interior_decoration"
+    }
+   ],
+   "terms": [
+    "interior decoration store",
+    "interior decoration shop",
+    "interior decoration stores",
+    "interior decoration shops"
+   ],
+   "id_presets": [
+    "shop/interior_decoration"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_jewelry",
+   "generated": true,
+   "label": "Jewelry Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "jewelry"
+    }
+   ],
+   "terms": [
+    "jewelry store",
+    "jewelry shop",
+    "jewelry stores",
+    "jewelry shops",
+    "jeweler",
+    "jewelers",
+    "jewellery store"
+   ],
+   "id_presets": [
+    "shop/jewelry"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_kiosk",
+   "generated": true,
+   "label": "Kiosk",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "kiosk"
+    }
+   ],
+   "terms": [
+    "kiosk",
+    "kiosks"
+   ],
+   "id_presets": [
+    "shop/kiosk"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_kitchen",
+   "generated": true,
+   "label": "Kitchen Design Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "kitchen"
+    }
+   ],
+   "terms": [
+    "kitchen design store",
+    "kitchen designs",
+    "kitchen design shop",
+    "kitchen design stores",
+    "kitchen design shops"
+   ],
+   "id_presets": [
+    "shop/kitchen"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_locksmith",
+   "generated": true,
+   "label": "Locksmith",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "locksmith"
+    }
+   ],
+   "terms": [
+    "locksmith",
+    "locksmiths"
+   ],
+   "id_presets": [
+    "shop/locksmith"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_massage",
+   "generated": true,
+   "label": "Massage Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "massage"
+    }
+   ],
+   "terms": [
+    "massage shop",
+    "massages",
+    "massage store",
+    "massage stores",
+    "massage shops"
+   ],
+   "id_presets": [
+    "shop/massage"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_medical_supply",
+   "generated": true,
+   "label": "Medical Supply Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "medical_supply"
+    }
+   ],
+   "terms": [
+    "medical supply store",
+    "medical supplies",
+    "medical supply shop",
+    "medical supply stores",
+    "medical supply shops"
+   ],
+   "id_presets": [
+    "shop/medical_supply"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_money_lender",
+   "generated": true,
+   "label": "Money Lender",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "money_lender"
+    }
+   ],
+   "terms": [
+    "money lender",
+    "money lenders"
+   ],
+   "id_presets": [
+    "shop/money_lender"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_motorcycle",
+   "generated": true,
+   "label": "Motorcycle Dealership",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "motorcycle"
+    }
+   ],
+   "terms": [
+    "motorcycle dealership",
+    "motorcycle dealerships"
+   ],
+   "id_presets": [
+    "shop/motorcycle"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_motorcycle_repair",
+   "generated": true,
+   "label": "Motorcycle Repair Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "motorcycle_repair"
+    }
+   ],
+   "terms": [
+    "motorcycle repair shop",
+    "motorcycle repairs",
+    "motorcycle repair store",
+    "motorcycle repair stores",
+    "motorcycle repair shops"
+   ],
+   "id_presets": [
+    "shop/motorcycle_repair"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_music",
+   "generated": true,
+   "label": "Music Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "music"
+    }
+   ],
+   "terms": [
+    "music store",
+    "music shop",
+    "music stores",
+    "music shops"
+   ],
+   "id_presets": [
+    "shop/music"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_musical_instrument",
+   "generated": true,
+   "label": "Musical Instrument Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "musical_instrument"
+    }
+   ],
+   "terms": [
+    "musical instrument store",
+    "musical instruments",
+    "musical instrument shop",
+    "musical instrument stores",
+    "musical instrument shops",
+    "guitar store",
+    "guitar shop"
+   ],
+   "id_presets": [
+    "shop/musical_instrument"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_newsagent",
+   "generated": true,
+   "label": "Newsstand",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "newsagent"
+    }
+   ],
+   "terms": [
+    "newsstand",
+    "newsstands"
+   ],
+   "id_presets": [
+    "shop/newsagent"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_nutrition_supplements",
+   "generated": true,
+   "label": "Nutrition Supplements Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "nutrition_supplements"
+    }
+   ],
+   "terms": [
+    "nutrition supplements store",
+    "nutrition supplements shop",
+    "nutrition supplements stores",
+    "nutrition supplements shops"
+   ],
+   "id_presets": [
+    "shop/nutrition_supplements"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_optician",
+   "generated": true,
+   "label": "Optician",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "optician"
+    }
+   ],
+   "terms": [
+    "optician",
+    "opticians"
+   ],
+   "id_presets": [
+    "shop/optician"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_paint",
+   "generated": true,
+   "label": "Paint Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "paint"
+    }
+   ],
+   "terms": [
+    "paint store",
+    "paint shop",
+    "paint stores",
+    "paint shops"
+   ],
+   "id_presets": [
+    "shop/paint"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_party",
+   "generated": true,
+   "label": "Party Supply Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "party"
+    }
+   ],
+   "terms": [
+    "party supply store",
+    "party supplies",
+    "party supply shop",
+    "party supply stores",
+    "party supply shops"
+   ],
+   "id_presets": [
+    "shop/party"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_pawnbroker",
+   "generated": true,
+   "label": "Pawnshop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "pawnbroker"
+    }
+   ],
+   "terms": [
+    "pawnshop",
+    "pawnshops"
+   ],
+   "id_presets": [
+    "shop/pawnbroker"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_pet_grooming",
+   "generated": true,
+   "label": "Pet Groomer",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "pet_grooming"
+    }
+   ],
+   "terms": [
+    "pet groomer",
+    "pet groomers"
+   ],
+   "id_presets": [
+    "shop/pet_grooming"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_photo",
+   "generated": true,
+   "label": "Photography Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "photo"
+    }
+   ],
+   "terms": [
+    "photography store",
+    "photographies",
+    "photography shop",
+    "photography stores",
+    "photography shops"
+   ],
+   "id_presets": [
+    "shop/photo"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_pottery",
+   "generated": true,
+   "label": "Pottery Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "pottery"
+    }
+   ],
+   "terms": [
+    "pottery store",
+    "pottery shop",
+    "pottery stores",
+    "pottery shops"
+   ],
+   "id_presets": [
+    "shop/pottery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_psychic",
+   "generated": true,
+   "label": "Psychic",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "psychic"
+    }
+   ],
+   "terms": [
+    "psychic",
+    "psychics"
+   ],
+   "id_presets": [
+    "shop/psychic"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_pyrotechnics",
+   "generated": true,
+   "label": "Fireworks Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "pyrotechnics"
+    }
+   ],
+   "terms": [
+    "fireworks store",
+    "fireworks",
+    "fireworks shop",
+    "fireworks stores",
+    "fireworks shops"
+   ],
+   "id_presets": [
+    "shop/pyrotechnics"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_religion",
+   "generated": true,
+   "label": "Religious Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "religion"
+    }
+   ],
+   "terms": [
+    "religious store",
+    "religious",
+    "religious shop",
+    "religious stores",
+    "religious shops"
+   ],
+   "id_presets": [
+    "shop/religion"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_rental",
+   "generated": true,
+   "label": "Rental Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "rental"
+    }
+   ],
+   "terms": [
+    "rental shop",
+    "rental store",
+    "rental stores",
+    "rental shops"
+   ],
+   "id_presets": [
+    "shop/rental"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_repair",
+   "generated": true,
+   "label": "Repair Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "repair"
+    }
+   ],
+   "terms": [
+    "repairs",
+    "repair store",
+    "repair stores"
+   ],
+   "id_presets": [
+    "shop/repair"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_seafood",
+   "generated": true,
+   "label": "Seafood Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "seafood"
+    }
+   ],
+   "terms": [
+    "seafood shop",
+    "seafood store",
+    "seafood stores",
+    "seafood shops"
+   ],
+   "id_presets": [
+    "shop/seafood"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_second_hand",
+   "generated": true,
+   "label": "Thrift Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "second_hand"
+    }
+   ],
+   "terms": [
+    "thrift store",
+    "thrift shop",
+    "thrift stores",
+    "thrift shops",
+    "thrift",
+    "consignment",
+    "consignment shop",
+    "secondhand store"
+   ],
+   "id_presets": [
+    "shop/second_hand"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_sewing",
+   "generated": true,
+   "label": "Sewing Supply Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "sewing"
+    }
+   ],
+   "terms": [
+    "sewing supply shop",
+    "sewing supplies",
+    "sewing supply store",
+    "sewing supply stores",
+    "sewing supply shops"
+   ],
+   "id_presets": [
+    "shop/sewing"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_shoe_repair",
+   "generated": true,
+   "label": "Shoe Repair Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "shoe_repair"
+    }
+   ],
+   "terms": [
+    "shoe repair shop",
+    "shoe repairs",
+    "shoe repair store",
+    "shoe repair stores",
+    "shoe repair shops"
+   ],
+   "id_presets": [
+    "shop/shoe_repair"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_stationery",
+   "generated": true,
+   "label": "Stationery Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "stationery"
+    }
+   ],
+   "terms": [
+    "stationery store",
+    "stationeries",
+    "stationery shop",
+    "stationery stores",
+    "stationery shops"
+   ],
+   "id_presets": [
+    "shop/stationery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_storage_rental",
+   "generated": true,
+   "label": "Storage Rental",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "storage_rental"
+    }
+   ],
+   "terms": [
+    "storage rental",
+    "storage rentals"
+   ],
+   "id_presets": [
+    "shop/storage_rental"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_tailor",
+   "generated": true,
+   "label": "Tailor",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "tailor"
+    }
+   ],
+   "terms": [
+    "tailor",
+    "tailors"
+   ],
+   "id_presets": [
+    "shop/tailor"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_tattoo",
+   "generated": true,
+   "label": "Tattoo Parlor",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "tattoo"
+    }
+   ],
+   "terms": [
+    "tattoo parlor",
+    "tattoo parlors"
+   ],
+   "id_presets": [
+    "shop/tattoo"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_tea",
+   "generated": true,
+   "label": "Tea Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "tea"
+    }
+   ],
+   "terms": [
+    "tea store",
+    "tea shop",
+    "tea stores",
+    "tea shops"
+   ],
+   "id_presets": [
+    "shop/tea"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_telecommunication",
+   "generated": true,
+   "label": "Telecom Retail Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "telecommunication"
+    }
+   ],
+   "terms": [
+    "telecom retail store",
+    "telecom retails",
+    "telecom retail shop",
+    "telecom retail stores",
+    "telecom retail shops"
+   ],
+   "id_presets": [
+    "shop/telecommunication"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_ticket",
+   "generated": true,
+   "label": "Ticket Seller",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "ticket"
+    }
+   ],
+   "terms": [
+    "ticket seller",
+    "ticket sellers"
+   ],
+   "id_presets": [
+    "shop/ticket"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_tiles",
+   "generated": true,
+   "label": "Tile Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "tiles"
+    }
+   ],
+   "terms": [
+    "tile shop",
+    "tiles",
+    "tile store",
+    "tile stores",
+    "tile shops"
+   ],
+   "id_presets": [
+    "shop/tiles"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_tobacco",
+   "generated": true,
+   "label": "Tobacco Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "tobacco"
+    }
+   ],
+   "terms": [
+    "tobacco shop",
+    "tobacco store",
+    "tobacco stores",
+    "tobacco shops"
+   ],
+   "id_presets": [
+    "shop/tobacco"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_toys",
+   "generated": true,
+   "label": "Toy Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "toys"
+    }
+   ],
+   "terms": [
+    "toy store",
+    "toys",
+    "toy shop",
+    "toy stores",
+    "toy shops"
+   ],
+   "id_presets": [
+    "shop/toys"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_travel_agency",
+   "generated": true,
+   "label": "Travel Agency",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "travel_agency"
+    }
+   ],
+   "terms": [
+    "travel agency",
+    "travel agencies"
+   ],
+   "id_presets": [
+    "shop/travel_agency"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_vacuum_cleaner",
+   "generated": true,
+   "label": "Vacuum Cleaner Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "vacuum_cleaner"
+    }
+   ],
+   "terms": [
+    "vacuum cleaner store",
+    "vacuum cleaners",
+    "vacuum cleaner shop",
+    "vacuum cleaner stores",
+    "vacuum cleaner shops"
+   ],
+   "id_presets": [
+    "shop/vacuum_cleaner"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_video_games",
+   "generated": true,
+   "label": "Video Game Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "video_games"
+    }
+   ],
+   "terms": [
+    "video game store",
+    "video games",
+    "video game shop",
+    "video game stores",
+    "video game shops"
+   ],
+   "id_presets": [
+    "shop/video_games"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_watches",
+   "generated": true,
+   "label": "Watches Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "watches"
+    }
+   ],
+   "terms": [
+    "watches shop",
+    "watches",
+    "watches store",
+    "watches stores",
+    "watches shops"
+   ],
+   "id_presets": [
+    "shop/watches"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_weapons",
+   "generated": true,
+   "label": "Weapon Shop",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "weapons"
+    }
+   ],
+   "terms": [
+    "weapon shop",
+    "weapons",
+    "weapon store",
+    "weapon stores",
+    "weapon shops"
+   ],
+   "id_presets": [
+    "shop/weapons"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "shop_window_blind",
+   "generated": true,
+   "label": "Window Blind Store",
+   "group": "shop",
+   "match": [
+    {
+     "shop": "window_blind"
+    }
+   ],
+   "terms": [
+    "window blind store",
+    "window blinds",
+    "window blind shop",
+    "window blind stores",
+    "window blind shops"
+   ],
+   "id_presets": [
+    "shop/window_blind"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  },
+  {
+   "id": "tourism_gallery",
+   "generated": true,
+   "label": "Art Gallery",
+   "group": "fun",
+   "match": [
+    {
+     "tourism": "gallery"
+    }
+   ],
+   "terms": [
+    "art gallery",
+    "art galleries"
+   ],
+   "id_presets": [
+    "tourism/gallery"
+   ],
+   "id_terms_exclude": [
+    "drum",
+    "keyboard",
+    "new",
+    "old",
+    "preowned",
+    "used"
+   ]
+  }
+ ]
 }
