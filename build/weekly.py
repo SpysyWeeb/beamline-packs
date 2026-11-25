@@ -60,11 +60,13 @@ import os
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tarfile
 import threading
 import time
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -672,6 +674,53 @@ def osm_timestamp(pbf: Path) -> str:
     return ts
 
 
+_REACH_LAST: dict[str, float] = {}   # host -> when reach() last looked at it (time.monotonic())
+
+
+def reach(url: str, every_s: float = 20.0) -> str | None:
+    """What each address of the url's host answers to a plain connection, for the log after a request
+    failed without an HTTP answer (2026-11-24: Geofabrik "[Errno 101] Network is unreachable" on every
+    try). urllib reports only the last address it tried, so an IPv6 address a machine without IPv6
+    cannot reach hides why IPv4 failed; here every address gets its own line part. Only the server's
+    own (public) addresses are named, nothing about this machine. None when the host was looked at
+    less than [every_s] ago (one look per round of tries, not one per request)."""
+    parts = urllib.parse.urlsplit(url)
+    host = parts.hostname or ""
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    now = time.monotonic()
+    if now - _REACH_LAST.get(host, -1e9) < every_s:
+        return None
+    _REACH_LAST[host] = now
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except OSError as e:
+        return f"{host}: the name lookup failed ({type(e).__name__}: {e})"
+    seen: set[str] = set()
+    out = []
+    for fam, kind, proto, _, addr in infos:
+        if addr[0] in seen:
+            continue
+        seen.add(addr[0])
+        t0 = time.monotonic()
+        try:
+            with socket.socket(fam, kind, proto) as s:
+                s.settimeout(15)
+                s.connect(addr)
+            res = "connects"
+        except OSError as e:
+            res = f"{type(e).__name__} [Errno {e.errno}] {e.strerror}" if e.errno else f"{type(e).__name__}: {e}"
+        out.append(f"{'IPv6' if fam == socket.AF_INET6 else 'IPv4'} {addr[0]} {res} ({time.monotonic() - t0:.1f} s)")
+    return f"{host} port {port}: " + ("; ".join(out) or "no address")
+
+
+def log_reach(url: str, e: OSError) -> None:
+    """After a failed request: the per-address look of reach() when the server gave no HTTP answer."""
+    if getattr(e, "code", None) is None:
+        r = reach(url)
+        if r:
+            print(f"     addresses: {r}", flush=True)
+
+
 def download(url: str, dest: Path, tries: int = 5) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name(dest.name + ".part")
@@ -683,7 +732,8 @@ def download(url: str, dest: Path, tries: int = 5) -> None:
             tmp.replace(dest)
             return
         except OSError as e:
-            print(f"   {dest.name}: attempt {attempt} failed ({type(e).__name__}); retrying", flush=True)
+            print(f"   {dest.name}: attempt {attempt} failed ({type(e).__name__}: {e}); retrying", flush=True)
+            log_reach(url, e)
             time.sleep(10 * attempt)
     raise SystemExit(f"download failed: {url}")
 
@@ -698,6 +748,7 @@ def url_exists(url: str) -> bool:
     except OSError as e:
         if getattr(e, "code", None) != 404:  # "not there" is an answer; anything else is worth a line in the log
             print(f"   {url}: {type(e).__name__}: {e}", flush=True)
+            log_reach(url, e)
         return False
 
 
@@ -715,6 +766,7 @@ def dated_extracts(folder: str, name: str) -> list[str]:
         page = fetch_text(folder + "/")
     except OSError as e:
         print(f"   {folder}/: the listing cannot be read ({type(e).__name__}: {e})", flush=True)
+        log_reach(folder + "/", e)
         return []
     rule = re.compile(rf"^{re.escape(name)}-(\d{{6}})\.osm\.pbf$")
     found = set()
