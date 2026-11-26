@@ -1215,9 +1215,11 @@ def checks(run: dict, a) -> None:
             lim = CONFIG["search_check"][cases]
             s["ok"] = s.get("top5", 0) >= lim["min_top5"] and s.get("top5_excl_gaps", 0) >= lim["min_top5_excl_gaps"]
             r[f"search {cases}"] = s
+        pts = CONFIG["state_info"][st].get("search_points", {})
+        where = [a for k in ("inside", "near") if k in pts for a in (f"--{k}", ",".join(str(v) for v in pts[k]))]
         r["search_inputs"] = step(run, f"check-search-inputs-{st}", [sys.executable,
                                                                     "packbuilder/search/tests/check_inputs.py",
-                                                                    "--db", str(pack / "search.sqlite")],
+                                                                    "--db", str(pack / "search.sqlite")] + where,
                                   check=False) == 0
         out = OUT / "checks" / f"routes-{st}.json"
         step(run, f"check-routes-{st}", [py("routing"), "build/check_routes.py", str(pack), st, "--out", str(out)],

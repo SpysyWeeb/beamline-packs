@@ -4,14 +4,14 @@
   "state_info": {
     "pa": {"name": "Pennsylvania", "geofabrik": "pennsylvania",
            "addresses_steps": ["download", "nad", "extra", "osm", "tiger", "build"],
-           "search_cases": ["cases.json", "cases_holdout.json", "cases_review.json"]},
+           "_search_points_note": "check_inputs.py: a city inside the state, and one more than the search's 50 km margin outside its bounding box with the state's stations within reach (PA: Erie, Cleveland; OH: Columbus, Indianapolis; CA: Sacramento, Ensenada)", "search_points": {"inside": [42.1292, -80.0851], "near": [41.4993, -81.6944]}, "search_cases": ["cases.json", "cases_holdout.json", "cases_review.json"]},
     "ca": {"name": "California", "geofabrik": "california",
            "_addresses_note": "as Ohio (no NAD step); first built in the California trial (beamline docs/next-round.md item 48)",
-           "addresses_steps": ["download", "extra", "osm", "tiger", "build"], "search_cases": []},
+           "addresses_steps": ["download", "extra", "osm", "tiger", "build"], "search_points": {"inside": [38.5816, -121.4944], "near": [31.8667, -116.5964]}, "search_cases": []},
     "oh": {"name": "Ohio", "geofabrik": "ohio",
            "_addresses_note": "no NAD step: the hosted NAD service needs about 9 hours for Ohio (more than one job may run); OSM points and TIGER ranges only, as in round 3",
            "addresses_steps": ["download", "extra", "osm", "tiger", "build"],
-           "search_cases": []}
+           "search_points": {"inside": [39.9612, -82.9988], "near": [39.7684, -86.1581]}, "search_cases": []}
   },
   "geofabrik_base": "https://download.geofabrik.de/north-america/us",
   "extract_fallback": {

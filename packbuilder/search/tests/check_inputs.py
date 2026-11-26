@@ -6,8 +6,10 @@ Checks, each printed as PASS/FAIL (exit code 1 if any fails):
   * bad positions (inf, nan, out of range, text) never raise and are ignored
     (position_ignored = true);
   * a position far outside the pack (London, 0/0) is flagged out_of_coverage, and a
-    pure category query there returns nothing instead of junk name matches;
-  * a position just outside the pack (Cleveland) still finds PA results;
+    pure category query there returns nothing but brand matches (a chain named like the
+    category, as 'walmart' there), never junk name matches;
+  * a position just outside the pack (--near; Cleveland for PA) still finds the pack's gas
+    stations, flagged; one inside it (--inside; Erie for PA) is not flagged;
   * the database opens from a path containing '#', '%' and spaces (hard link in a
     temporary folder next to the database);
   * hostile query strings (FTS5 syntax, quotes, SQL, NUL, very long input) never raise.
@@ -38,7 +40,12 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=os.path.join(REPO, "data", "search", "pa-search.sqlite"))
+    # docs/next-round.md item 48: any state's pack; the weekly build passes state_info.<st>.search_points
+    ap.add_argument("--inside", default="42.1292,-80.0851", help="lat,lon inside the pack (default Erie, PA)")
+    ap.add_argument("--near", default="41.4993,-81.6944", help="lat,lon just outside it (default Cleveland, OH)")
     args = ap.parse_args()
+    inside = tuple(float(v) for v in args.inside.split(","))
+    near = tuple(float(v) for v in args.near.split(","))
     eng = query.SearchEngine(args.db)
 
     for lat, lon in [(float("inf"), 0.0), (float("nan"), 0.0), (0.0, float("-inf")), (95.0, 10.0), (40.0, 200.0),
@@ -54,17 +61,21 @@ def main() -> None:
     for q in ("gas", "rest stop", "hospital"):
         for name, (lat, lon) in (("London", (51.5074, -0.1278)), ("0,0", (0.0, 0.0))):
             r = eng.search(q, lat, lon)
-            check(f"'{q}' at {name}: flagged, no junk", r["out_of_coverage"] is True and not r["results"],
-                  f"out_of_coverage={r['out_of_coverage']}, {len(r['results'])} results")
+            check(f"'{q}' at {name}: flagged, no junk",
+                  r["out_of_coverage"] is True and all(x.get("how") == "brand" for x in r["results"]),
+                  f"out_of_coverage={r['out_of_coverage']}, {len(r['results'])} results"
+                  + "".join(f"; {x['title']} ({x.get('how')})" for x in r["results"][:3]))
     r = eng.search("walmart", 51.5074, -0.1278)
     check("'walmart' at London: brand still found, flagged", r["out_of_coverage"] is True and bool(r["results"])
           and r["results"][0]["title"].lower().startswith("walmart"), r["results"][0]["title"] if r["results"] else "")
-    r = eng.search("gas", 41.4993, -81.6944)
-    check("'gas' at Cleveland: PA stations, flagged", r["out_of_coverage"] is True and bool(r["results"])
-          and r["results"][0]["category"] == "Gas station",
+    r = eng.search("gas", *near)
+    # the pack's fuel by its category: gas stations, and a truck stop may come first (it sells fuel too)
+    top = r["results"][:5]
+    check(f"'gas' just outside ({args.near}): the pack's stations, flagged", r["out_of_coverage"] is True and bool(top)
+          and all(x.get("how") == "category" for x in top) and any(x["category"] == "Gas station" for x in top),
           f"{r['results'][0]['title']} {r['results'][0]['distance_km']} km" if r["results"] else "none")
-    r = eng.search("gas", 42.1292, -80.0851)
-    check("'gas' at Erie: not flagged", r["out_of_coverage"] is False and bool(r["results"]))
+    r = eng.search("gas", *inside)
+    check(f"'gas' inside ({args.inside}): not flagged", r["out_of_coverage"] is False and bool(r["results"]))
 
     tmp = tempfile.mkdtemp(prefix="search uri #% test ", dir=os.path.dirname(os.path.abspath(args.db)))
     odd = os.path.join(tmp, "pack #1 100% copy.sqlite")
@@ -74,7 +85,7 @@ def main() -> None:
         except OSError:
             shutil.copyfile(args.db, odd)
         e2 = query.SearchEngine(odd)
-        r = e2.search("erie", 42.1292, -80.0851)
+        r = e2.search("gas", *inside)
         check("database path with '#', '%' and spaces", bool(r["results"]), odd.replace(REPO, "<repo>"))
         e2.db.close()
     except Exception as e:  # noqa: BLE001

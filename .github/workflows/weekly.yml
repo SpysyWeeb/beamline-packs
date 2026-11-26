@@ -111,9 +111,9 @@ jobs:
         if: always() && inputs.states != ''
         run: |
           df -h / || true
-          du -sh out data 2>/dev/null || true
-          find out -type f -size +50M -exec ls -la {} \; 2>/dev/null | sort -k5 -n | tail -n 40 || true
-          python3 -c "import json,sys; r=json.load(open('out/run.json')); print(json.dumps({k: r[k] for k in r if k in ('timings','steps','extracts','memory','peak','packs','failed','comma')}, indent=1)[:20000])" || true
+          du -sh data data/out 2>/dev/null || true
+          find data/out -type f -size +20M -exec ls -la {} \; 2>/dev/null | sort -k5 -n | tail -n 40 || true
+          python3 -c "import json,sys; r=json.load(open('data/out/run.json')); print(json.dumps({k: r[k] for k in r if k in ('timings','steps','extracts','memory','peak','packs','failed','comma')}, indent=1)[:20000])" || true
 
       - name: Keep the logs of a failed run
         if: failure()
