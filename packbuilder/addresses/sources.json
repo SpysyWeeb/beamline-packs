@@ -182,7 +182,8 @@
         "173",
         "175"
       ]
-    }
+    },
+    "ca": {"name": "California", "usps": "CA", "fips": "06", "osm": "california", "files": ["county_cb", "cousub_ca"], "county_fips3": ["001", "003", "005", "007", "009", "011", "013", "015", "017", "019", "021", "023", "025", "027", "029", "031", "033", "035", "037", "039", "041", "043", "045", "047", "049", "051", "053", "055", "057", "059", "061", "063", "065", "067", "069", "071", "073", "075", "077", "079", "081", "083", "085", "087", "089", "091", "093", "095", "097", "099", "101", "103", "105", "107", "109", "111", "113", "115"]}
   },
   "osm": {
     "pennsylvania": "pennsylvania-261114.osm.pbf",
@@ -207,6 +208,7 @@
       "what": "TIGER/Line 2026 county subdivisions (OH townships, villages, cities)",
       "licence": "US Government work, public domain (17 U.S.C. 105)"
     },
+    "cousub_ca": {"url": "https://www2.census.gov/geo/tiger/TIGER2026/COUSUB/tl_2026_06_cousub.zip", "what": "TIGER/Line 2026 county subdivisions (CA census county divisions)", "licence": "US Government work, public domain (17 U.S.C. 105)"},
     "hu_pa": {
       "url": "https://www2.census.gov/programs-surveys/popest/tables/2020-2025/housing/totals/CO-EST2025-HU-42.xlsx",
       "what": "Census PEP Vintage 2025 annual housing unit estimates, PA counties (table CO-EST2025-HU-42)",

@@ -15,6 +15,12 @@
       "usps": "OH",
       "osm": "data/osm/ohio-261114.osm.pbf",
       "poly": "data/osm/ohio.poly"
+    },
+    "ca": {
+      "name": "California",
+      "usps": "CA",
+      "osm": "data/osm/california-261114.osm.pbf",
+      "poly": "data/osm/california.poly"
     }
   },
   "clip": {

@@ -52,6 +52,11 @@ STATES = {
            "routing": "data/routing/packs/oh",
            "search": "data/r3-packs/oh-search.sqlite",
            "addresses": "data/r3-p/addresses-oh/oh-addresses-slim.sqlite"},
+    "ca": {"name": "California", "usps": "CA",
+           "map": "data/map/packs-v2/ca-261114-z14.pmtiles",
+           "routing": "data/routing/packs/ca",
+           "search": "data/r3-packs/ca-search.sqlite",
+           "addresses": "data/r3-p/addresses-ca/ca-addresses-slim.sqlite"},
 }
 
 # Part file names in the pack (docs/architecture.md 2.11).

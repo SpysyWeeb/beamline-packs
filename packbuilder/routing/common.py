@@ -27,7 +27,7 @@ OSM_IN = REPO / "data" / "osm"
 SNAPSHOT = os.environ.get("BEAMLINE_SNAPSHOT", "261114")
 if not (len(SNAPSHOT) == 6 and SNAPSHOT.isdigit()):
     raise SystemExit(f"BEAMLINE_SNAPSHOT={SNAPSHOT!r}: expected YYMMDD")
-ALL_STATES = {"pa": "pennsylvania", "oh": "ohio"}
+ALL_STATES = {"pa": "pennsylvania", "oh": "ohio", "ca": "california"}
 # The states of the one graph (BEAMLINE_ROUTING_STATES, comma-separated; default PA and OH together).
 # Packs cut from one graph share its graph build id; a phone mixes no two graph builds.
 _STATES_ENV = [s.strip() for s in os.environ.get("BEAMLINE_ROUTING_STATES", "pa,oh").split(",") if s.strip()]

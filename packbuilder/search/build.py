@@ -42,6 +42,8 @@ STATES = {
            "name": "Pennsylvania", "abbr": "PA", "iso": "US-PA"},
     "oh": {"pbf": "data/osm/ohio-261114.osm.pbf", "poly": "data/osm/ohio.poly",
            "name": "Ohio", "abbr": "OH", "iso": "US-OH"},
+    "ca": {"pbf": "data/osm/california-261114.osm.pbf", "poly": "data/osm/california.poly",
+           "name": "California", "abbr": "CA", "iso": "US-CA"},
 }
 # The weekly build (the packs repository) sets BEAMLINE_SNAPSHOT (YYMMDD) to the date of its extracts.
 _SNAP = os.environ.get("BEAMLINE_SNAPSHOT")
