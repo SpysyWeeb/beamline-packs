@@ -187,7 +187,7 @@
   },
   "osm": {
     "pennsylvania": "pennsylvania-261114.osm.pbf",
-    "ohio": "ohio-261114.osm.pbf"
+    "ohio": "ohio-261114.osm.pbf", "california": "california-261114.osm.pbf"
   },
   "tiger_vintage": "2026",
   "tiger_addrfeat_url": "https://www2.census.gov/geo/tiger/TIGER2026/ADDRFEAT/tl_2026_{county5}_addrfeat.zip",
