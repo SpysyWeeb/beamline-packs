@@ -140,6 +140,11 @@ def py(builder: str) -> str:
 
 def states() -> list[str]:
     st = CONFIG["states"]
+    # a run of chosen states (the workflow's "states" input, e.g. "ca" for the California trial,
+    # beamline docs/next-round.md item 48); each must be in state_info
+    only = os.environ.get("BEAMLINE_STATES", "").strip()
+    if only:
+        st = [s.strip() for s in only.split(",") if s.strip()]
     bad = [s for s in st if s not in CONFIG["state_info"]]
     if not st or bad:
         raise SystemExit(f"config states {st}: unknown {bad}")

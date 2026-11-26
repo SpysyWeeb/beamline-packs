@@ -16,6 +16,10 @@ on:
         description: "Allow a pack much smaller than the published one (a deliberate change)"
         type: boolean
         default: false
+      states:
+        description: "Only these states, comma-separated (e.g. ca for a trial); empty: the config's list"
+        type: string
+        default: ""
 
 permissions:
   contents: write   # releases only; the workflow's own GITHUB_TOKEN, no other secret
@@ -33,6 +37,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       PYTHONUNBUFFERED: "1"
+      BEAMLINE_STATES: ${{ inputs.states || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -101,6 +106,14 @@ jobs:
       - name: Remove unpublished drafts
         if: failure()
         run: python3 build/weekly.py cleanup-drafts
+
+      - name: Measurements of a chosen-states run (time, disk, file sizes)
+        if: always() && inputs.states != ''
+        run: |
+          df -h / || true
+          du -sh out data 2>/dev/null || true
+          find out -type f -size +50M -exec ls -la {} \; 2>/dev/null | sort -k5 -n | tail -n 40 || true
+          python3 -c "import json,sys; r=json.load(open('out/run.json')); print(json.dumps({k: r[k] for k in r if k in ('timings','steps','extracts','memory','peak','packs','failed','comma')}, indent=1)[:20000])" || true
 
       - name: Keep the logs of a failed run
         if: failure()
