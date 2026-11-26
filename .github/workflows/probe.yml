@@ -1,0 +1,30 @@
+# Which OpenStreetMap download servers answer GitHub's machines (beamline docs/next-round.md item 48):
+# on 2026-11-26 Geofabrik refused every connection from the weekly build ("Connection refused" on each
+# IPv4 address). A HEAD request to each candidate source, run by hand.
+name: Probe OSM sources
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Ask each source
+        run: |
+          for u in \
+            https://download.geofabrik.de/north-america/us/pennsylvania/pennsylvania-latest.osm.pbf.md5 \
+            https://download.openstreetmap.fr/extracts/north-america/us-west.state.txt \
+            https://download.openstreetmap.fr/extracts/north-america/us-northeast.osm.pbf.md5 \
+            https://planet.openstreetmap.org/replication/day/state.txt \
+            https://ftp.osuosl.org/pub/openstreetmap/pbf/planet-latest.osm.pbf.md5 \
+            https://download.bbbike.org/osm/bbbike/Philadelphia/Philadelphia.osm.pbf.md5 \
+            https://osm-internal.download.geofabrik.de/ \
+          ; do
+            printf '%s  ' "$u"
+            curl -sS -o /dev/null -I --max-time 20 -w '%{http_code} %{remote_ip} %{time_total}s\n' "$u" || echo "failed"
+          done
